@@ -117,6 +117,10 @@
 			const otherPlayers = new Map();
 			const multiplayerBalls = new Map();
 			
+			// health system
+			const MAX_HEALTH = 3;
+			const playerHealth = new Map(); // track health for all players
+			
 			// player meshes for other players - penguin model
 			function createPenguin() {
 				const penguinGroup = new THREE.Group();
@@ -208,6 +212,36 @@
 				penguinGroup.add(rightFoot);
 				
 				return penguinGroup;
+			}
+			
+			// create floating hearts above penguin
+			function createHealthHearts() {
+				const heartsGroup = new THREE.Group();
+				
+				for (let i = 0; i < MAX_HEALTH; i++) {
+					// heart geometry (simple heart shape using spheres and cones)
+					const heartGroup = new THREE.Group();
+					
+					// main heart body (red sphere)
+					const heartGeometry = new THREE.SphereGeometry(0.08, 8, 8);
+					const heartMaterial = new THREE.MeshLambertMaterial({ color: 0xff0000 });
+					const heart = new THREE.Mesh(heartGeometry, heartMaterial);
+					heartGroup.add(heart);
+					
+					// heart top (smaller sphere)
+					const topGeometry = new THREE.SphereGeometry(0.06, 8, 8);
+					const top = new THREE.Mesh(topGeometry, heartMaterial);
+					top.position.y = 0.08;
+					heartGroup.add(top);
+					
+					// position hearts horizontally
+					heartGroup.position.x = (i - 1) * 0.2; // spread hearts horizontally
+					heartGroup.position.y = 1.2; // above penguin head
+					
+					heartsGroup.add(heartGroup);
+				}
+				
+				return heartsGroup;
 			}
 			
 			// ball geometry for multiplayer balls
@@ -322,6 +356,30 @@
 							}
 							break;
 							
+						case 'playerDamaged':
+							if (data.playerId && data.playerId !== playerId) {
+								damagePlayer(data.playerId);
+							}
+							break;
+							
+						case 'playerRespawned':
+							if (data.playerId && data.playerId !== playerId) {
+								const player = otherPlayers.get(data.playerId);
+								if (player) {
+									player.position.set(data.position.x, data.position.y, data.position.z);
+									player.health = MAX_HEALTH;
+									playerHealth.set(data.playerId, MAX_HEALTH);
+									
+									// show all hearts again
+									if (player.hearts) {
+										player.hearts.children.forEach(heart => {
+											heart.visible = true;
+										});
+									}
+								}
+							}
+							break;
+							
 						default:
 							console.log('unknown message type:', data.type);
 					}
@@ -339,14 +397,23 @@
 					}
 					
 					const penguinMesh = createPenguin();
+					const heartsMesh = createHealthHearts();
+					
+					// add hearts to penguin group
+					penguinMesh.add(heartsMesh);
 					scene.add(penguinMesh);
+					
+					// initialize health
+					playerHealth.set(player.id, MAX_HEALTH);
 					
 					otherPlayers.set(player.id, {
 						mesh: penguinMesh,
+						hearts: heartsMesh,
 						position: new THREE.Vector3(player.position.x, player.position.y, player.position.z),
 						rotation: new THREE.Euler(player.rotation.x, player.rotation.y, player.rotation.z),
 						velocity: new THREE.Vector3(player.velocity.x, player.velocity.y, player.velocity.z),
-						onFloor: player.onFloor
+						onFloor: player.onFloor,
+						health: MAX_HEALTH
 					});
 					
 					console.log('added penguin player:', player.id);
@@ -373,6 +440,60 @@
 				if (player) {
 					scene.remove(player.mesh);
 					otherPlayers.delete(id);
+					playerHealth.delete(id);
+				}
+			}
+			
+			// handle damage to player
+			function damagePlayer(playerId) {
+				const player = otherPlayers.get(playerId);
+				if (player && player.health > 0) {
+					player.health--;
+					playerHealth.set(playerId, player.health);
+					
+					// hide one heart
+					if (player.hearts && player.hearts.children[player.health]) {
+						player.hearts.children[player.health].visible = false;
+					}
+					
+					console.log(`player ${playerId} took damage! health: ${player.health}`);
+					
+					// if health reaches 0, respawn player
+					if (player.health <= 0) {
+						respawnPlayer(playerId);
+					}
+				}
+			}
+			
+			// respawn player at spawn point
+			function respawnPlayer(playerId) {
+				const player = otherPlayers.get(playerId);
+				if (player) {
+					// reset position to spawn point
+					player.position.set(0, 1, 0);
+					player.velocity.set(0, 0, 0);
+					player.onFloor = false;
+					
+					// reset health
+					player.health = MAX_HEALTH;
+					playerHealth.set(playerId, MAX_HEALTH);
+					
+					// show all hearts again
+					if (player.hearts) {
+						player.hearts.children.forEach(heart => {
+							heart.visible = true;
+						});
+					}
+					
+					console.log(`player ${playerId} respawned!`);
+					
+					// send respawn message to server
+					if (ws && ws.readyState === WebSocket.OPEN) {
+						ws.send(JSON.stringify({
+							type: 'respawn',
+							playerId: playerId
+						}));
+					}
 				}
 			}
 
@@ -395,6 +516,21 @@
 					// simple physics for multiplayer balls
 					ball.velocity.y -= GRAVITY * deltaTime;
 					ball.mesh.position.addScaledVector(ball.velocity, deltaTime);
+					
+					// check collision with other players
+					otherPlayers.forEach((player, playerId) => {
+						if (playerId !== playerId) { // don't hit yourself
+							const distance = ball.mesh.position.distanceTo(player.position);
+							if (distance < 0.5) { // collision radius
+								// apply damage
+								damagePlayer(playerId);
+								
+								// remove the ball
+								scene.remove(ball.mesh);
+								multiplayerBalls.delete(id);
+							}
+						}
+					});
 					
 					// remove balls that are too old or fallen off
 					if (Date.now() - ball.timestamp > 10000 || ball.mesh.position.y < -25) {
@@ -427,6 +563,35 @@
 			function updatePlayerCount() {
 				const count = otherPlayers.size + 1;
 				document.getElementById('playerInfo').textContent = `players: ${count}`;
+			}
+			
+			// create UI for local player health
+			function createLocalPlayerHealthUI() {
+				const healthContainer = document.createElement('div');
+				healthContainer.id = 'localPlayerHealth';
+				healthContainer.style.cssText = `
+					position: fixed;
+					top: 60px;
+					left: 20px;
+					background: rgba(0, 0, 0, 0.7);
+					color: white;
+					padding: 10px 15px;
+					border-radius: 5px;
+					font-family: Arial, sans-serif;
+					font-size: 14px;
+					z-index: 1000;
+				`;
+				healthContainer.innerHTML = `health: ❤️❤️❤️`;
+				document.body.appendChild(healthContainer);
+			}
+			
+			// update local player health display
+			function updateLocalPlayerHealth(health) {
+				const healthElement = document.getElementById('localPlayerHealth');
+				if (healthElement) {
+					const hearts = '❤️'.repeat(health) + '🖤'.repeat(MAX_HEALTH - health);
+					healthElement.innerHTML = `health: ${hearts}`;
+				}
 			}
 
 			// input handling
@@ -713,6 +878,10 @@
 				renderer.render( scene, camera );
 			}
 
+			// initialize local player health
+			playerHealth.set('local', MAX_HEALTH);
+			createLocalPlayerHealthUI();
+			
 			// start websocket connection
 			connectWebSocket();
 
