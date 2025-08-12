@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>$PARTY</title>
+		<meta charset=utf-8 />
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<link type="text/css" rel="stylesheet" href="main.css">
+		<style>
+			.nav-button {
+				position: fixed;
+				top: 20px;
+				right: 20px;
+				width: 160px;
+				height: 50px;
+				border: 3px solid #000;
+				border-radius: 12px;
+				cursor: pointer;
+				font-family: 'Courier New', monospace;
+				font-size: 14px;
+				font-weight: bold;
+				text-transform: uppercase;
+				z-index: 1000;
+				transition: all 0.1s ease;
+				image-rendering: pixelated;
+				text-shadow: 1px 1px 0 #000;
+				background: linear-gradient(to bottom, #FF6B6B 0%, #DC143C 50%, #8B0000 100%);
+				color: #000;
+			}
+			
+			.nav-button:hover {
+				transform: translateY(2px);
+			}
+			
+			.nav-button:active {
+				transform: translateY(6px);
+			}
+			
+			.loading-overlay {
+				position: fixed;
+				top: 0;
+				left: 0;
+				width: 100%;
+				height: 100%;
+				background: rgba(0, 0, 0, 0.8);
+				display: none;
+				justify-content: center;
+				align-items: center;
+				z-index: 9999;
+			}
+			
+			.loading-spinner {
+				width: 60px;
+				height: 60px;
+				border: 6px solid #f3f3f3;
+				border-top: 6px solid #3498db;
+				border-radius: 50%;
+				animation: spin 1s linear infinite;
+			}
+			
+			@keyframes spin {
+				0% { transform: rotate(0deg); }
+				100% { transform: rotate(360deg); }
+			}
+			.player-info {
+				position: fixed;
+				top: 20px;
+				left: 20px;
+				background: rgba(0, 0, 0, 0.7);
+				color: white;
+				padding: 10px 15px;
+				border-radius: 5px;
+				font-family: Arial, sans-serif;
+				font-size: 14px;
+				z-index: 1000;
+			}
+			.connection-status {
+				position: fixed;
+				bottom: 20px;
+				left: 20px;
+				background: rgba(0, 0, 0, 0.7);
+				color: white;
+				padding: 10px 15px;
+				border-radius: 5px;
+				font-family: Arial, sans-serif;
+				font-size: 14px;
+				z-index: 1000;
+			}
+			.connected { color: #4CAF50; }
+			.disconnected { color: #f44336; }
+		</style>
+		
+		<!-- Arcade button sound -->
+		        <audio id="arcadeSound" preload="auto">
+            <source src="button.mp3" type="audio/mpeg">
+        </audio>
+		
+		<script>
+			// Arcade button sound function
+			function playButtonSound() {
+				const audio = document.getElementById('arcadeSound');
+				audio.currentTime = 0;
+				audio.volume = 0.5;
+				audio.play().catch(e => console.log('Audio play failed:', e));
+			}
+			
+			// Show loading overlay
+			function showLoading() {
+				document.getElementById('loadingOverlay').style.display = 'flex';
+			}
+			
+			// Add click handlers to all buttons
+			document.addEventListener('DOMContentLoaded', function() {
+				const buttons = document.querySelectorAll('.nav-button');
+				buttons.forEach(button => {
+					button.addEventListener('click', function(e) {
+						e.preventDefault();
+						playButtonSound();
+						showLoading();
+						
+						// Store the original onclick
+						const originalOnClick = button.getAttribute('onclick');
+						
+						// Delay navigation by 1.5 seconds
+						setTimeout(() => {
+							if (originalOnClick) {
+								// Execute the original onclick
+								eval(originalOnClick);
+							}
+						}, 1500);
+					});
+				});
+			});
+		</script>
+	</head>
+	<body>
+		<!-- Loading overlay -->
+		<div class="loading-overlay" id="loadingOverlay">
+			<div class="loading-spinner"></div>
+		</div>
+		
+		            <button class="nav-button" data-url="city.html">return to the city</button>
+		<div class="player-info" id="playerInfo">players: 0</div>
+		<div class="connection-status" id="connectionStatus">connecting...</div>
+		<div id="container"></div>
+
+		<script type="importmap">
+			{
+				"imports": {
+					"three": "../build/three.module.js",
+					"three/addons/": "./jsm/"
+				}
+			}
+		</script>
+
+		<script type="module">
+
+			import * as THREE from 'three';
+			import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+			import { Octree } from 'three/addons/math/Octree.js';
+			import { Capsule } from 'three/addons/math/Capsule.js';
+
+			const clock = new THREE.Clock();
+			const scene = new THREE.Scene();
+			scene.background = new THREE.Color( 0x88ccee );
+			scene.fog = new THREE.Fog( 0x88ccee, 0, 50 );
+
+			const camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 0.1, 1000 );
+			camera.rotation.order = 'YXZ';
+
+			const fillLight1 = new THREE.HemisphereLight( 0x8dc1de, 0x00668d, 1.5 );
+			fillLight1.position.set( 2, 1, 1 );
+			scene.add( fillLight1 );
+
+			const directionalLight = new THREE.DirectionalLight( 0xffffff, 2.5 );
+			directionalLight.position.set( - 5, 25, - 1 );
+			directionalLight.castShadow = true;
+			directionalLight.shadow.camera.near = 0.01;
+			directionalLight.shadow.camera.far = 500;
+			directionalLight.shadow.camera.right = 30;
+			directionalLight.shadow.camera.left = - 30;
+			directionalLight.shadow.camera.top	= 30;
+			directionalLight.shadow.camera.bottom = - 30;
+			directionalLight.shadow.mapSize.width = 1024;
+			directionalLight.shadow.mapSize.height = 1024;
+			directionalLight.shadow.radius = 4;
+			directionalLight.shadow.bias = - 0.00006;
+			scene.add( directionalLight );
+
+			const container = document.getElementById( 'container' );
+			const renderer = new THREE.WebGLRenderer( { antialias: true } );
+			renderer.setPixelRatio( window.devicePixelRatio );
+			renderer.setSize( window.innerWidth, window.innerHeight );
+			renderer.setAnimationLoop( animate );
+			renderer.shadowMap.enabled = true;
+			renderer.shadowMap.type = THREE.VSMShadowMap;
+			renderer.toneMapping = THREE.ACESFilmicToneMapping;
+			container.appendChild( renderer.domElement );
+
+			// multiplayer variables
+			let ws = null;
+			let playerId = null;
+			const otherPlayers = new Map();
+			const multiplayerBalls = new Map();
+			
+			// health system
+			const MAX_HEALTH = 7; // increased from 3 to 7 hearts
+			const playerHealth = new Map(); // track health for all players
+			
+			// spawn point coordinates (center of the battlefield)
+			const SPAWN_POINT = new THREE.Vector3(0, 1, 0);
+			
+			// player meshes for other players - penguin model
+			function createPenguin() {
+				const penguinGroup = new THREE.Group();
+				
+				// body (black)
+				const bodyGeometry = new THREE.CapsuleGeometry(0.3, 0.8, 4, 8);
+				const bodyMaterial = new THREE.MeshLambertMaterial({ color: 0x1a1a1a });
+				const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+				body.castShadow = true;
+				body.receiveShadow = true;
+				penguinGroup.add(body);
+				
+				// belly (white)
+				const bellyGeometry = new THREE.CapsuleGeometry(0.25, 0.6, 4, 8);
+				const bellyMaterial = new THREE.MeshLambertMaterial({ color: 0xffffff });
+				const belly = new THREE.Mesh(bellyGeometry, bellyMaterial);
+				belly.position.z = 0.1;
+				belly.castShadow = true;
+				belly.receiveShadow = true;
+				penguinGroup.add(belly);
+				
+				// head (black)
+				const headGeometry = new THREE.SphereGeometry(0.25, 8, 8);
+				const headMaterial = new THREE.MeshLambertMaterial({ color: 0x1a1a1a });
+				const head = new THREE.Mesh(headGeometry, headMaterial);
+				head.position.y = 0.6;
+				head.castShadow = true;
+				head.receiveShadow = true;
+				penguinGroup.add(head);
+				
+				// eyes (white)
+				const eyeGeometry = new THREE.SphereGeometry(0.03, 4, 4);
+				const eyeMaterial = new THREE.MeshLambertMaterial({ color: 0xffffff });
+				const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+				leftEye.position.set(-0.08, 0.65, 0.2);
+				penguinGroup.add(leftEye);
+				const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+				rightEye.position.set(0.08, 0.65, 0.2);
+				penguinGroup.add(rightEye);
+				
+				// pupils (black)
+				const pupilGeometry = new THREE.SphereGeometry(0.015, 4, 4);
+				const pupilMaterial = new THREE.MeshLambertMaterial({ color: 0x000000 });
+				const leftPupil = new THREE.Mesh(pupilGeometry, pupilMaterial);
+				leftPupil.position.set(-0.08, 0.65, 0.22);
+				penguinGroup.add(leftPupil);
+				const rightPupil = new THREE.Mesh(pupilGeometry, pupilMaterial);
+				rightPupil.position.set(0.08, 0.65, 0.22);
+				penguinGroup.add(rightPupil);
+				
+				// beak (orange)
+				const beakGeometry = new THREE.ConeGeometry(0.03, 0.08, 4);
+				const beakMaterial = new THREE.MeshLambertMaterial({ color: 0xff6600 });
+				const beak = new THREE.Mesh(beakGeometry, beakMaterial);
+				beak.position.set(0, 0.55, 0.25);
+				beak.rotation.x = Math.PI / 2;
+				penguinGroup.add(beak);
+				
+				// wings (black)
+				const wingGeometry = new THREE.CapsuleGeometry(0.05, 0.4, 4, 4);
+				const wingMaterial = new THREE.MeshLambertMaterial({ color: 0x1a1a1a });
+				const leftWing = new THREE.Mesh(wingGeometry, wingMaterial);
+				leftWing.position.set(-0.35, 0.2, 0);
+				leftWing.rotation.z = Math.PI / 2;
+				leftWing.castShadow = true;
+				leftWing.receiveShadow = true;
+				penguinGroup.add(leftWing);
+				const rightWing = new THREE.Mesh(wingGeometry, wingMaterial);
+				rightWing.position.set(0.35, 0.2, 0);
+				rightWing.rotation.z = -Math.PI / 2;
+				rightWing.castShadow = true;
+				rightWing.receiveShadow = true;
+				penguinGroup.add(rightWing);
+				
+				// feet (orange)
+				const footGeometry = new THREE.CapsuleGeometry(0.04, 0.15, 4, 4);
+				const footMaterial = new THREE.MeshLambertMaterial({ color: 0xff6600 });
+				const leftFoot = new THREE.Mesh(footGeometry, footMaterial);
+				leftFoot.position.set(-0.15, -0.4, 0);
+				leftFoot.rotation.x = Math.PI / 2;
+				leftFoot.castShadow = true;
+				leftFoot.receiveShadow = true;
+				penguinGroup.add(leftFoot);
+				const rightFoot = new THREE.Mesh(footGeometry, footMaterial);
+				rightFoot.position.set(0.15, -0.4, 0);
+				rightFoot.rotation.x = Math.PI / 2;
+				rightFoot.castShadow = true;
+				rightFoot.receiveShadow = true;
+				penguinGroup.add(rightFoot);
+				
+				return penguinGroup;
+			}
+			
+			// create floating hearts above penguin
+			function createHealthHearts() {
+				const heartsGroup = new THREE.Group();
+				
+				for (let i = 0; i < MAX_HEALTH; i++) {
+					// heart geometry (simple heart shape using spheres and cones)
+					const heartGroup = new THREE.Group();
+					
+					// main heart body (red sphere)
+					const heartGeometry = new THREE.SphereGeometry(0.08, 8, 8);
+					const heartMaterial = new THREE.MeshLambertMaterial({ color: 0xff0000 });
+					const heart = new THREE.Mesh(heartGeometry, heartMaterial);
+					heartGroup.add(heart);
+					
+					// heart top (smaller sphere)
+					const topGeometry = new THREE.SphereGeometry(0.06, 8, 8);
+					const top = new THREE.Mesh(topGeometry, heartMaterial);
+					top.position.y = 0.08;
+					heartGroup.add(top);
+					
+					// position hearts horizontally
+					heartGroup.position.x = (i - 1) * 0.2; // spread hearts horizontally
+					heartGroup.position.y = 1.2; // above penguin head
+					
+					heartsGroup.add(heartGroup);
+				}
+				
+				return heartsGroup;
+			}
+			
+			// ball geometry for multiplayer balls
+			const ballGeometry = new THREE.IcosahedronGeometry( 0.2, 5 );
+			const ballMaterial = new THREE.MeshLambertMaterial( { color: 0x00ff00 } ); // green for multiplayer balls
+
+			const GRAVITY = 30;
+			const NUM_SPHERES = 100;
+			const SPHERE_RADIUS = 0.2;
+			const STEPS_PER_FRAME = 5;
+
+			const sphereGeometry = new THREE.IcosahedronGeometry( SPHERE_RADIUS, 5 );
+			const sphereMaterial = new THREE.MeshLambertMaterial( { color: 0xffffff } ); // white for player balls
+
+			const spheres = [];
+			let sphereIdx = 0;
+
+			for ( let i = 0; i < NUM_SPHERES; i ++ ) {
+				const sphere = new THREE.Mesh( sphereGeometry, sphereMaterial );
+				sphere.castShadow = true;
+				sphere.receiveShadow = true;
+				scene.add( sphere );
+				spheres.push( {
+					mesh: sphere,
+					collider: new THREE.Sphere( new THREE.Vector3( 0, - 100, 0 ), SPHERE_RADIUS ),
+					velocity: new THREE.Vector3()
+				} );
+			}
+
+			const worldOctree = new Octree();
+			const playerCollider = new Capsule( new THREE.Vector3( 0, 0.35, 0 ), new THREE.Vector3( 0, 1, 0 ), 0.35 );
+			const playerVelocity = new THREE.Vector3();
+			const playerDirection = new THREE.Vector3();
+
+			let playerOnFloor = false;
+			let mouseTime = 0;
+			const keyStates = {};
+
+			const vector1 = new THREE.Vector3();
+			const vector2 = new THREE.Vector3();
+			const vector3 = new THREE.Vector3();
+
+			// websocket connection
+			function connectWebSocket() {
+				const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+				const host = window.location.hostname;
+				const port = window.location.port ? `:${window.location.port}` : '';
+				ws = new WebSocket(`${protocol}//${host}${port}/ws`);
+				
+						ws.onopen = () => {
+			updateConnectionStatus('connected', true);
+			// send game type to server
+			ws.send(JSON.stringify({
+				type: 'gameType',
+				gameType: 'pengstrike'
+			}));
+		};
+				
+				ws.onclose = () => {
+					updateConnectionStatus('disconnected', false);
+					// try to reconnect after 3 seconds
+					setTimeout(connectWebSocket, 3000);
+				};
+				
+				ws.onmessage = (event) => {
+					try {
+						const data = JSON.parse(event.data);
+						handleWebSocketMessage(data);
+					} catch (error) {
+						console.error('error parsing websocket message:', error);
+					}
+				};
+			}
+
+			function handleWebSocketMessage(data) {
+				try {
+					switch (data.type) {
+						case 'init':
+							playerId = data.playerId;
+							console.log('initialized with player id:', playerId);
+							// add existing players
+							if (data.players && Array.isArray(data.players)) {
+								data.players.forEach(player => {
+									addOtherPlayer(player);
+								});
+							}
+							// add existing balls
+							if (data.balls && Array.isArray(data.balls)) {
+								data.balls.forEach(ball => {
+									addMultiplayerBall(ball);
+								});
+							}
+							updatePlayerCount();
+							break;
+							
+						case 'playerJoined':
+							if (data.player && data.player.id !== playerId) {
+								addOtherPlayer(data.player);
+								updatePlayerCount();
+							}
+							break;
+							
+						case 'playerUpdate':
+							if (data.playerId !== playerId) {
+								updateOtherPlayer(data.playerId, data.position, data.rotation, data.velocity, data.onFloor);
+							}
+							break;
+							
+						case 'playerLeft':
+							removeOtherPlayer(data.playerId);
+							updatePlayerCount();
+							break;
+							
+						case 'ballThrown':
+							if (data.ball) {
+								addMultiplayerBall(data.ball);
+							}
+							break;
+							
+						case 'playerDamaged':
+							if (data.playerId && data.playerId !== playerId) {
+								damagePlayer(data.playerId);
+							}
+							break;
+							
+						case 'playerRespawned':
+							if (data.playerId && data.playerId !== playerId) {
+								const player = otherPlayers.get(data.playerId);
+								if (player) {
+									// use spawn point position if provided, otherwise use default spawn
+									if (data.position) {
+										player.position.set(data.position.x, data.position.y, data.position.z);
+									} else {
+										player.position.copy(SPAWN_POINT);
+									}
+									player.health = MAX_HEALTH;
+									playerHealth.set(data.playerId, MAX_HEALTH);
+									
+									// show all hearts again
+									if (player.hearts) {
+										player.hearts.children.forEach(heart => {
+											heart.visible = true;
+										});
+									}
+									
+									console.log(`player ${data.playerId} respawned at spawn point!`);
+								}
+							}
+							break;
+							
+						default:
+							console.log('unknown message type:', data.type);
+					}
+				} catch (error) {
+					console.error('error handling websocket message:', error);
+				}
+			}
+
+			function addOtherPlayer(player) {
+				try {
+					// check if player already exists
+					if (otherPlayers.has(player.id)) {
+						console.log('player already exists:', player.id);
+						return;
+					}
+					
+					const penguinMesh = createPenguin();
+					const heartsMesh = createHealthHearts();
+					
+					// add hearts to penguin group
+					penguinMesh.add(heartsMesh);
+					scene.add(penguinMesh);
+					
+					// initialize health
+					playerHealth.set(player.id, MAX_HEALTH);
+					
+					otherPlayers.set(player.id, {
+						mesh: penguinMesh,
+						hearts: heartsMesh,
+						position: new THREE.Vector3(player.position.x, player.position.y, player.position.z),
+						rotation: new THREE.Euler(player.rotation.x, player.rotation.y, player.rotation.z),
+						velocity: new THREE.Vector3(player.velocity.x, player.velocity.y, player.velocity.z),
+						onFloor: player.onFloor,
+						health: MAX_HEALTH
+					});
+					
+					console.log('added penguin player:', player.id);
+				} catch (error) {
+					console.error('error adding player:', error);
+				}
+			}
+
+			function updateOtherPlayer(id, position, rotation, velocity, onFloor) {
+				const player = otherPlayers.get(id);
+				if (player) {
+					player.position.set(position.x, position.y, position.z);
+					// fix penguin orientation - make it face the direction it's looking
+					player.rotation.set(rotation.x, rotation.y, rotation.z);
+					// rotate the penguin 180 degrees so the front (beak) faces forward
+					player.mesh.rotation.y = rotation.y + Math.PI;
+					player.velocity.set(velocity.x, velocity.y, velocity.z);
+					player.onFloor = onFloor;
+				}
+			}
+
+			function removeOtherPlayer(id) {
+				const player = otherPlayers.get(id);
+				if (player) {
+					scene.remove(player.mesh);
+					otherPlayers.delete(id);
+					playerHealth.delete(id);
+				}
+			}
+			
+			// handle damage to player
+			function damagePlayer(playerId) {
+				const player = otherPlayers.get(playerId);
+				if (player && player.health > 0) {
+					player.health--;
+					playerHealth.set(playerId, player.health);
+					
+					// hide one heart
+					if (player.hearts && player.hearts.children[player.health]) {
+						player.hearts.children[player.health].visible = false;
+					}
+					
+					console.log(`player ${playerId} took damage! health: ${player.health}`);
+					
+					// if health reaches 0, respawn player
+					if (player.health <= 0) {
+						respawnPlayer(playerId);
+					}
+				}
+			}
+			
+			// respawn player at spawn point
+			function respawnPlayer(playerId) {
+				const player = otherPlayers.get(playerId);
+				if (player) {
+					// reset position to spawn point (center of battlefield)
+					player.position.copy(SPAWN_POINT);
+					player.velocity.set(0, 0, 0);
+					player.onFloor = false;
+					
+					// reset health
+					player.health = MAX_HEALTH;
+					playerHealth.set(playerId, MAX_HEALTH);
+					
+					// show all hearts again
+					if (player.hearts) {
+						player.hearts.children.forEach(heart => {
+							heart.visible = true;
+						});
+					}
+					
+					console.log(`player ${playerId} respawned at spawn point!`);
+					
+					// send respawn message to server with spawn position
+					if (ws && ws.readyState === WebSocket.OPEN) {
+						ws.send(JSON.stringify({
+							type: 'respawn',
+							playerId: playerId,
+							position: {
+								x: SPAWN_POINT.x,
+								y: SPAWN_POINT.y,
+								z: SPAWN_POINT.z
+							}
+						}));
+					}
+				}
+			}
+
+			function addMultiplayerBall(ball) {
+				const ballMesh = new THREE.Mesh(ballGeometry, ballMaterial);
+				ballMesh.castShadow = true;
+				ballMesh.receiveShadow = true;
+				ballMesh.position.set(ball.position.x, ball.position.y, ball.position.z);
+				scene.add(ballMesh);
+				
+				multiplayerBalls.set(ball.id, {
+					mesh: ballMesh,
+					velocity: new THREE.Vector3(ball.velocity.x, ball.velocity.y, ball.velocity.z),
+					timestamp: ball.timestamp,
+					ownerId: ball.ownerId || 'unknown' // track who threw the ball
+				});
+			}
+
+			function updateMultiplayerBalls(deltaTime) {
+				multiplayerBalls.forEach((ball, id) => {
+					// simple physics for multiplayer balls
+					ball.velocity.y -= GRAVITY * deltaTime;
+					ball.mesh.position.addScaledVector(ball.velocity, deltaTime);
+					
+					// check collision with other players
+					otherPlayers.forEach((player, playerId) => {
+						// check if this ball belongs to the current player (don't hit yourself)
+						const ballOwner = ball.ownerId || 'unknown';
+						if (ballOwner !== playerId) {
+							const distance = ball.mesh.position.distanceTo(player.position);
+							if (distance < 0.5) { // collision radius
+								console.log(`ball hit player ${playerId}! distance: ${distance}`);
+								
+								// calculate push force (similar to playerSphereCollision)
+								const normal = new THREE.Vector3().subVectors(player.position, ball.mesh.position).normalize();
+								const pushForce = 8; // how much the ball pushes the player
+								
+								// apply push force to player velocity
+								player.velocity.add(normal.multiplyScalar(pushForce));
+								
+								// apply damage
+								damagePlayer(playerId);
+								
+								// remove the ball
+								scene.remove(ball.mesh);
+								multiplayerBalls.delete(id);
+							}
+						}
+					});
+					
+					// remove balls that are too old or fallen off
+					if (Date.now() - ball.timestamp > 10000 || ball.mesh.position.y < -25) {
+						scene.remove(ball.mesh);
+						multiplayerBalls.delete(id);
+					}
+				});
+			}
+
+			function updateOtherPlayers(deltaTime) {
+				otherPlayers.forEach(player => {
+					try {
+						// smoother interpolation for other players
+						player.mesh.position.lerp(player.position, 0.05);
+						// use the corrected rotation for penguin orientation
+						const targetRotation = new THREE.Euler(player.rotation.x, player.rotation.y + Math.PI, player.rotation.z);
+						player.mesh.rotation.lerp(targetRotation, 0.05);
+					} catch (error) {
+						console.error('error updating player:', error);
+					}
+				});
+			}
+
+			function updateConnectionStatus(status, connected) {
+				const statusElement = document.getElementById('connectionStatus');
+				statusElement.textContent = status;
+				statusElement.className = `connection-status ${connected ? 'connected' : 'disconnected'}`;
+			}
+
+			function updatePlayerCount() {
+				const count = otherPlayers.size + 1;
+				document.getElementById('playerInfo').textContent = `players: ${count}`;
+			}
+			
+			// create UI for local player health - REMOVED
+			function createLocalPlayerHealthUI() {
+				// removed health UI - hearts are only shown above penguins
+			}
+			
+			// update local player health display - REMOVED
+			function updateLocalPlayerHealth(health) {
+				// removed health UI - hearts are only shown above penguins
+			}
+
+			// input handling
+			document.addEventListener( 'keydown', ( event ) => {
+				keyStates[ event.code ] = true;
+			} );
+
+			document.addEventListener( 'keyup', ( event ) => {
+				keyStates[ event.code ] = false;
+			} );
+
+			container.addEventListener( 'mousedown', () => {
+				document.body.requestPointerLock();
+				mouseTime = performance.now();
+			} );
+
+			document.addEventListener( 'mouseup', () => {
+				if ( document.pointerLockElement !== null ) throwBall();
+			} );
+
+			document.body.addEventListener( 'mousemove', ( event ) => {
+				if ( document.pointerLockElement === document.body ) {
+					camera.rotation.y -= event.movementX / 500;
+					camera.rotation.x -= event.movementY / 500;
+				}
+			} );
+
+			window.addEventListener( 'resize', onWindowResize );
+
+			function onWindowResize() {
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+				renderer.setSize( window.innerWidth, window.innerHeight );
+			}
+
+			function throwBall() {
+				const sphere = spheres[ sphereIdx ];
+				camera.getWorldDirection( playerDirection );
+				sphere.collider.center.copy( playerCollider.end ).addScaledVector( playerDirection, playerCollider.radius * 1.5 );
+
+				const impulse = 15 + 30 * ( 1 - Math.exp( ( mouseTime - performance.now() ) * 0.001 ) );
+				sphere.velocity.copy( playerDirection ).multiplyScalar( impulse );
+				sphere.velocity.addScaledVector( playerVelocity, 2 );
+
+				// send ball throw to server
+				if (ws && ws.readyState === WebSocket.OPEN) {
+					ws.send(JSON.stringify({
+						type: 'throwBall',
+						position: {
+							x: sphere.collider.center.x,
+							y: sphere.collider.center.y,
+							z: sphere.collider.center.z
+						},
+						velocity: {
+							x: sphere.velocity.x,
+							y: sphere.velocity.y,
+							z: sphere.velocity.z
+						},
+						ownerId: playerId // include who threw the ball
+					}));
+				}
+
+				sphereIdx = ( sphereIdx + 1 ) % spheres.length;
+			}
+
+			function playerCollisions() {
+				const result = worldOctree.capsuleIntersect( playerCollider );
+				playerOnFloor = false;
+
+				if ( result ) {
+					playerOnFloor = result.normal.y > 0;
+					if ( ! playerOnFloor ) {
+						playerVelocity.addScaledVector( result.normal, - result.normal.dot( playerVelocity ) );
+					}
+					if ( result.depth >= 1e-10 ) {
+						playerCollider.translate( result.normal.multiplyScalar( result.depth ) );
+					}
+				}
+			}
+
+			function updatePlayer( deltaTime ) {
+				let damping = Math.exp( - 4 * deltaTime ) - 1;
+
+				if ( ! playerOnFloor ) {
+					playerVelocity.y -= GRAVITY * deltaTime;
+					damping *= 0.1;
+				}
+
+				playerVelocity.addScaledVector( playerVelocity, damping );
+
+				const deltaPosition = playerVelocity.clone().multiplyScalar( deltaTime );
+				playerCollider.translate( deltaPosition );
+
+				playerCollisions();
+
+				camera.position.copy( playerCollider.end );
+
+				// send position update to server (throttled to avoid spam)
+				if (ws && ws.readyState === WebSocket.OPEN) {
+					// only send updates every 3 frames to reduce network traffic
+					if (!window.frameCount) window.frameCount = 0;
+					window.frameCount++;
+					
+					if (window.frameCount % 3 === 0) {
+						ws.send(JSON.stringify({
+							type: 'updatePosition',
+							position: {
+								x: camera.position.x,
+								y: camera.position.y,
+								z: camera.position.z
+							},
+							rotation: {
+								x: camera.rotation.x,
+								y: camera.rotation.y,
+								z: camera.rotation.z
+							},
+							velocity: {
+								x: playerVelocity.x,
+								y: playerVelocity.y,
+								z: playerVelocity.z
+							},
+							onFloor: playerOnFloor
+						}));
+					}
+				}
+			}
+
+			function playerSphereCollision( sphere ) {
+				const center = vector1.addVectors( playerCollider.start, playerCollider.end ).multiplyScalar( 0.5 );
+				const sphere_center = sphere.collider.center;
+				const r = playerCollider.radius + sphere.collider.radius;
+				const r2 = r * r;
+
+				for ( const point of [ playerCollider.start, playerCollider.end, center ] ) {
+					const d2 = point.distanceToSquared( sphere_center );
+
+					if ( d2 < r2 ) {
+						const normal = vector1.subVectors( point, sphere_center ).normalize();
+						const v1 = vector2.copy( normal ).multiplyScalar( normal.dot( playerVelocity ) );
+						const v2 = vector3.copy( normal ).multiplyScalar( normal.dot( sphere.velocity ) );
+
+						playerVelocity.add( v2 ).sub( v1 );
+						sphere.velocity.add( v1 ).sub( v2 );
+
+						const d = ( r - Math.sqrt( d2 ) ) / 2;
+						sphere_center.addScaledVector( normal, - d );
+					}
+				}
+			}
+
+			function spheresCollisions() {
+				for ( let i = 0, length = spheres.length; i < length; i ++ ) {
+					const s1 = spheres[ i ];
+					for ( let j = i + 1; j < length; j ++ ) {
+						const s2 = spheres[ j ];
+						const d2 = s1.collider.center.distanceToSquared( s2.collider.center );
+						const r = s1.collider.radius + s2.collider.radius;
+						const r2 = r * r;
+
+						if ( d2 < r2 ) {
+							const normal = vector1.subVectors( s1.collider.center, s2.collider.center ).normalize();
+							const v1 = vector2.copy( normal ).multiplyScalar( normal.dot( s1.velocity ) );
+							const v2 = vector3.copy( normal ).multiplyScalar( normal.dot( s2.velocity ) );
+
+							s1.velocity.add( v2 ).sub( v1 );
+							s2.velocity.add( v1 ).sub( v2 );
+
+							const d = ( r - Math.sqrt( d2 ) ) / 2;
+							s1.collider.center.addScaledVector( normal, d );
+							s2.collider.center.addScaledVector( normal, - d );
+						}
+					}
+				}
+			}
+
+			function updateSpheres( deltaTime ) {
+				spheres.forEach( sphere => {
+					sphere.collider.center.addScaledVector( sphere.velocity, deltaTime );
+
+					const result = worldOctree.sphereIntersect( sphere.collider );
+
+					if ( result ) {
+						sphere.velocity.addScaledVector( result.normal, - result.normal.dot( sphere.velocity ) * 1.5 );
+						sphere.collider.center.add( result.normal.multiplyScalar( result.depth ) );
+					} else {
+						sphere.velocity.y -= GRAVITY * deltaTime;
+					}
+
+					const damping = Math.exp( - 1.5 * deltaTime ) - 1;
+					sphere.velocity.addScaledVector( sphere.velocity, damping );
+
+					playerSphereCollision( sphere );
+				} );
+
+				spheresCollisions();
+
+				for ( const sphere of spheres ) {
+					sphere.mesh.position.copy( sphere.collider.center );
+				}
+			}
+
+			function getForwardVector() {
+				camera.getWorldDirection( playerDirection );
+				playerDirection.y = 0;
+				playerDirection.normalize();
+				return playerDirection;
+			}
+
+			function getSideVector() {
+				camera.getWorldDirection( playerDirection );
+				playerDirection.y = 0;
+				playerDirection.normalize();
+				playerDirection.cross( camera.up );
+				return playerDirection;
+			}
+
+			function controls( deltaTime ) {
+				const speedDelta = deltaTime * ( playerOnFloor ? 25 : 8 );
+
+				if ( keyStates[ 'KeyW' ] ) {
+					playerVelocity.add( getForwardVector().multiplyScalar( speedDelta ) );
+				}
+
+				if ( keyStates[ 'KeyS' ] ) {
+					playerVelocity.add( getForwardVector().multiplyScalar( - speedDelta ) );
+				}
+
+				if ( keyStates[ 'KeyA' ] ) {
+					playerVelocity.add( getSideVector().multiplyScalar( - speedDelta ) );
+				}
+
+				if ( keyStates[ 'KeyD' ] ) {
+					playerVelocity.add( getSideVector().multiplyScalar( speedDelta ) );
+				}
+
+				if ( playerOnFloor ) {
+					if ( keyStates[ 'Space' ] ) {
+						playerVelocity.y = 15;
+					}
+				}
+			}
+
+			const loader = new GLTFLoader().setPath( './models/gltf/' );
+
+			loader.load( 'collision-world.glb', ( gltf ) => {
+				scene.add( gltf.scene );
+				worldOctree.fromGraphNode( gltf.scene );
+
+				gltf.scene.traverse( child => {
+					if ( child.isMesh ) {
+						child.castShadow = true;
+						child.receiveShadow = true;
+
+						if ( child.material.map ) {
+							child.material.map.anisotropy = 4;
+						}
+					}
+				} );
+			} );
+
+			function teleportPlayerIfOob() {
+				if ( camera.position.y <= - 25 ) {
+					playerCollider.start.set( 0, 0.35, 0 );
+					playerCollider.end.set( 0, 1, 0 );
+					playerCollider.radius = 0.35;
+					camera.position.copy( playerCollider.end );
+					camera.rotation.set( 0, 0, 0 );
+				}
+			}
+
+			function animate() {
+				const deltaTime = Math.min( 0.05, clock.getDelta() ) / STEPS_PER_FRAME;
+
+				for ( let i = 0; i < STEPS_PER_FRAME; i ++ ) {
+					controls( deltaTime );
+					updatePlayer( deltaTime );
+					updateSpheres( deltaTime );
+					teleportPlayerIfOob();
+				}
+
+				// update multiplayer elements
+				updateOtherPlayers(deltaTime);
+				updateMultiplayerBalls(deltaTime);
+
+				renderer.render( scene, camera );
+			}
+
+			// initialize local player health
+			playerHealth.set('local', MAX_HEALTH);
+			createLocalPlayerHealthUI();
+			
+			// start websocket connection
+			connectWebSocket();
+
+		</script>
+	</body>
+</html>

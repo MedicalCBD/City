@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>$PARTY</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+		<link type="text/css" rel="stylesheet" href="main.css">
+		<style>
+			.nav-button {
+				position: fixed;
+				top: 20px;
+				right: 20px;
+				width: 160px;
+				height: 50px;
+				border: 3px solid #000;
+				border-radius: 12px;
+				cursor: pointer;
+				font-family: 'Courier New', monospace;
+				font-size: 14px;
+				font-weight: bold;
+				text-transform: uppercase;
+				z-index: 1000;
+				transition: all 0.1s ease;
+				image-rendering: pixelated;
+				text-shadow: 1px 1px 0 #000;
+				background: linear-gradient(to bottom, #FFB347 0%, #FF8C00 50%, #FF4500 100%);
+				color: #000;
+			}
+			
+			.nav-button:hover {
+				transform: translateY(2px);
+			}
+			
+			.nav-button:active {
+				transform: translateY(6px);
+			}
+			
+			.loading-overlay {
+				position: fixed;
+				top: 0;
+				left: 0;
+				width: 100%;
+				height: 100%;
+				background: rgba(0, 0, 0, 0.8);
+				display: none;
+				justify-content: center;
+				align-items: center;
+				z-index: 9999;
+			}
+			
+			.loading-spinner {
+				width: 60px;
+				height: 60px;
+				border: 6px solid #f3f3f3;
+				border-top: 6px solid #3498db;
+				border-radius: 50%;
+				animation: spin 1s linear infinite;
+			}
+			
+			@keyframes spin {
+				0% { transform: rotate(0deg); }
+				100% { transform: rotate(360deg); }
+			}
+			
+			.modal-overlay {
+				position: fixed;
+				top: 0;
+				left: 0;
+				width: 100%;
+				height: 100%;
+				background: rgba(0, 0, 0, 0.8);
+				display: none;
+				justify-content: center;
+				align-items: center;
+				z-index: 10000;
+				opacity: 0;
+				transition: opacity 0.5s ease-in-out;
+			}
+			
+			.modal-overlay.show {
+				opacity: 1;
+			}
+			
+			.modal-overlay.hide {
+				opacity: 0;
+			}
+			
+			.modal-content {
+				background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+				border: 4px solid #000;
+				border-radius: 15px;
+				padding: 30px;
+				max-width: 600px;
+				width: 90%;
+				text-align: center;
+				box-shadow: 0 8px 0 #000, inset 0 3px 0 rgba(255, 255, 255, 0.7);
+				image-rendering: pixelated;
+				transform: scale(0.5) rotateY(90deg);
+				opacity: 0;
+				transition: all 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+			}
+			
+			.modal-content.show {
+				transform: scale(1) rotateY(0deg);
+				opacity: 1;
+			}
+			
+			.modal-content.hide {
+				transform: scale(0.5) rotateY(-90deg);
+				opacity: 0;
+			}
+			
+			.modal-title {
+				font-family: 'Courier New', monospace;
+				font-size: 32px;
+				font-weight: bold;
+				color: #fff;
+				margin-bottom: 25px;
+				text-shadow: 2px 2px 0 #000;
+				text-transform: uppercase;
+			}
+			
+			.modal-text {
+				font-family: 'Courier New', monospace;
+				font-size: 20px;
+				color: #fff;
+				line-height: 1.6;
+				margin-bottom: 30px;
+				text-shadow: 1px 1px 0 #000;
+			}
+			
+			.modal-button {
+				width: 160px;
+				height: 50px;
+				border: 3px solid #000;
+				border-radius: 12px;
+				cursor: pointer;
+				font-family: 'Courier New', monospace;
+				font-size: 14px;
+				font-weight: bold;
+				text-transform: uppercase;
+				transition: all 0.1s ease;
+				image-rendering: pixelated;
+				text-shadow: 1px 1px 0 #000;
+				background: linear-gradient(to bottom, #FFB347 0%, #FF8C00 50%, #FF4500 100%);
+				color: #000;
+			}
+			
+			.modal-button:hover {
+				transform: translateY(2px);
+			}
+			
+			.modal-button:active {
+				transform: translateY(6px);
+			}
+		</style>
+		
+		<!-- Arcade button sound -->
+		        <audio id="arcadeSound" preload="auto">
+            <source src="button.mp3" type="audio/mpeg">
+        </audio>
+		
+		<script>
+			// Arcade button sound function
+			function playButtonSound() {
+				const audio = document.getElementById('arcadeSound');
+				audio.currentTime = 0;
+				audio.volume = 0.5;
+				audio.play().catch(e => console.log('Audio play failed:', e));
+			}
+			
+			// Show loading overlay
+			function showLoading() {
+				document.getElementById('loadingOverlay').style.display = 'flex';
+			}
+			
+			// Show modal
+			function showModal(title, text) {
+				document.getElementById('modalTitle').textContent = title;
+				document.getElementById('modalText').textContent = text;
+				
+				const overlay = document.getElementById('modalOverlay');
+				const content = document.getElementById('modalContent');
+				
+				overlay.style.display = 'flex';
+				
+				// Trigger entrance animation
+				setTimeout(() => {
+					overlay.classList.add('show');
+					content.classList.add('show');
+				}, 10);
+				
+				window.isModalOpen = true;
+				velocity = window.slowVelocity; // Slow down the rollercoaster
+			}
+			
+			// Close modal
+			function closeModal() {
+				playButtonSound(); // Play sound when closing modal
+				
+				const overlay = document.getElementById('modalOverlay');
+				const content = document.getElementById('modalContent');
+				
+				// Trigger exit animation
+				overlay.classList.remove('show');
+				overlay.classList.add('hide');
+				content.classList.remove('show');
+				content.classList.add('hide');
+				
+				// Hide overlay after animation completes
+				setTimeout(() => {
+					overlay.style.display = 'none';
+					overlay.classList.remove('hide');
+					content.classList.remove('hide');
+				}, 600);
+				
+				window.isModalOpen = false;
+				velocity = window.normalVelocity; // Resume normal speed
+				window.currentModalIndex++;
+				
+				// Schedule next modal to appear after 5 seconds
+				if (window.currentModalIndex < window.roadmapModals.length) {
+					window.modalScheduled = true;
+					setTimeout(() => {
+						const modal = window.roadmapModals[window.currentModalIndex];
+						showModal(modal.title, modal.text);
+						window.modalScheduled = false;
+					}, 5000);
+				}
+			}
+			
+			// Check if modal should be triggered
+			function checkModalTrigger() {
+				// Only trigger modals based on progress if no modal is scheduled to appear
+				if (window.currentModalIndex < window.modalTriggers.length && !window.isModalOpen && !window.modalScheduled) {
+					const triggerPoint = window.modalTriggers[window.currentModalIndex];
+					if (progress >= triggerPoint && progress < triggerPoint + 0.01) {
+						const modal = window.roadmapModals[window.currentModalIndex];
+						showModal(modal.title, modal.text);
+					}
+				}
+			}
+			
+			// Add click handlers to all buttons
+			document.addEventListener('DOMContentLoaded', function() {
+				const buttons = document.querySelectorAll('.nav-button');
+				buttons.forEach(button => {
+					button.addEventListener('click', function(e) {
+						e.preventDefault();
+						playButtonSound();
+						showLoading();
+						
+						// Store the original onclick
+						const originalOnClick = button.getAttribute('onclick');
+						
+						// Delay navigation by 1.5 seconds
+						setTimeout(() => {
+							if (originalOnClick) {
+								// Execute the original onclick
+								eval(originalOnClick);
+							}
+						}, 1500);
+					});
+				});
+				
+				// Add click handler for modal accept button
+				const modalAcceptButton = document.getElementById('modalAcceptButton');
+				if (modalAcceptButton) {
+					modalAcceptButton.addEventListener('click', function(e) {
+						e.preventDefault();
+						closeModal();
+					});
+				}
+			});
+		</script>
+	</head>
+	<body>
+		<!-- Loading overlay -->
+		<div class="loading-overlay" id="loadingOverlay">
+			<div class="loading-spinner"></div>
+		</div>
+		
+		<!-- Modal overlay -->
+		<div class="modal-overlay" id="modalOverlay">
+			<div class="modal-content" id="modalContent">
+				<div class="modal-title" id="modalTitle">ABSTRACT PARTY ROADMAP</div>
+				<div class="modal-text" id="modalText">Welcome to the future of the metaverse...</div>
+				<button class="modal-button" id="modalAcceptButton">ACCEPT</button>
+			</div>
+		</div>
+		
+		            <button class="nav-button" data-url="city.html">return to the city</button>
+
+		<script type="importmap">
+			{
+				"imports": {
+					"three": "../build/three.webgpu.js",
+					"three/webgpu": "../build/three.webgpu.js",
+					"three/addons/": "./jsm/"
+				}
+			}
+		</script>
+
+		<script type="module">
+
+			import * as THREE from 'three/webgpu';
+
+			import {
+				RollerCoasterGeometry,
+				RollerCoasterShadowGeometry,
+				RollerCoasterLiftersGeometry,
+				TreesGeometry,
+				SkyGeometry
+			} from 'three/addons/misc/RollerCoaster.js';
+
+			// import { VRButton } from 'three/addons/webxr/VRButton.js';
+			import { FontLoader } from 'three/addons/loaders/FontLoader.js';
+			import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
+
+			let mesh, material, geometry;
+
+			// Initialize animation variables
+			let velocity = 0.0001; // Start with normal velocity
+			window.progress = 0; // Move to global scope
+			let prevTime = performance.now();
+			
+			// Modal system variables - moved to global scope
+			window.isModalOpen = false;
+			window.currentModalIndex = 0;
+			window.normalVelocity = 0.0001;
+			window.slowVelocity = 0.00001;
+			window.modalScheduled = false;
+			
+			// Roadmap modals data - moved to global scope
+			window.roadmapModals = [
+				{
+					title: "ABSTRACT PARTY",
+					text: "Welcome to ABSTRACT PARTY, a unique gaming project on Abstract. We know it's not perfect, but we want to show you the potential we have to create something extraordinary."
+				},
+				{
+					title: "OUR VISION",
+					text: "We envision a world where gaming meets real economy. A metaverse where every action has value, every profession matters, and every player contributes to a living, breathing digital society."
+				},
+				{
+					title: "THE CONCEPT",
+					text: "Imagine a virtual world inspired by GTA V Role Play, but with real economic consequences. Players choose professions, build businesses, trade resources, and create their own stories in a persistent world."
+				},
+				{
+					title: "PROFESSIONS SYSTEM",
+					text: "Every player will choose a profession: police officer, doctor, merchant, constructor, farmer, mechanic, and many more. Each profession has unique abilities and economic opportunities."
+				},
+				{
+					title: "ECONOMIC FOUNDATION",
+					text: "The $PARTY token will be the backbone of our economy. Players can trade tokens between each other, and invest in virtual properties and businesses. We use Moonshot's contract and Abstract Swap to ensure transparency."
+				},
+				{
+					title: "VIRTUAL REAL ESTATE",
+					text: "Players can own virtual properties, build businesses, and create income streams. From small shops to massive corporations, the possibilities are endless."
+				},
+				{
+					title: "SOCIAL INTERACTION",
+					text: "Our metaverse will feature deep social systems. Form alliances, join guilds, participate in events, and build relationships that matter in both the virtual and real world."
+				},
+				{
+					title: "DEVELOPMENT PHASES",
+					text: "Phase 1: Core game mechanics and basic professions. Phase 2: Advanced trading and property systems. Phase 3: Full metaverse integration and community governance."
+				},
+				{
+					title: "TESTING & QUALITY",
+					text: "Before any major release, we will conduct extensive testing with our community. Quality and user experience are our top priorities. No rushed launches."
+				},
+				{
+					title: "COMMUNITY FIRST",
+					text: "This project is built by the community, for the community. Your feedback, ideas, and participation will shape the future of Abstract Party."
+				},
+				{
+					title: "THE FUTURE",
+					text: "This is just the beginning. With the support of our community, we will build the most innovative and authentic metaverse in the crypto world."
+				}
+			];
+			
+			// Modal trigger points (progress values where modals should appear) - moved to global scope
+			window.modalTriggers = [0.05, 0.12, 0.19, 0.26, 0.33, 0.4, 0.47, 0.54, 0.61, 0.68, 0.75];
+			
+			// Initialize vectors for animation
+			const position = new THREE.Vector3();
+			const tangent = new THREE.Vector3();
+			const lookAt = new THREE.Vector3();
+
+			const renderer = new THREE.WebGPURenderer( { antialias: true, forceWebGL: true, colorBufferType: THREE.UnsignedByteType, multiview: false } );
+			renderer.setPixelRatio( window.devicePixelRatio );
+			renderer.setSize( window.innerWidth, window.innerHeight );
+			renderer.setAnimationLoop( animate );
+			// renderer.xr.enabled = true;
+			// renderer.xr.setReferenceSpaceType( 'local' );
+			document.body.appendChild( renderer.domElement );
+
+			// document.body.appendChild( VRButton.createButton( renderer ) );
+
+			//
+
+			const scene = new THREE.Scene();
+			scene.background = new THREE.Color( 0xf0f0ff );
+
+			const light = new THREE.HemisphereLight( 0xfff0f0, 0x60606, 3 );
+			light.position.set( 1, 1, 1 );
+			scene.add( light );
+
+			const train = new THREE.Object3D();
+			scene.add( train );
+
+			const camera = new THREE.PerspectiveCamera( 50, window.innerWidth / window.innerHeight, 0.1, 500 );
+			train.add( camera );
+
+			// environment
+
+			geometry = new THREE.PlaneGeometry( 500, 500, 15, 15 );
+			geometry.rotateX( - Math.PI / 2 );
+
+			const positions = geometry.attributes.position.array;
+			const vertex = new THREE.Vector3();
+
+			for ( let i = 0; i < positions.length; i += 3 ) {
+
+				vertex.fromArray( positions, i );
+
+				vertex.x += Math.random() * 10 - 5;
+				vertex.z += Math.random() * 10 - 5;
+
+				const distance = ( vertex.distanceTo( scene.position ) / 5 ) - 25;
+				vertex.y = Math.random() * Math.max( 0, distance );
+
+				vertex.toArray( positions, i );
+
+			}
+
+			geometry.computeVertexNormals();
+
+			material = new THREE.MeshLambertMaterial( {
+				color: 0x407000
+			} );
+
+			mesh = new THREE.Mesh( geometry, material );
+			scene.add( mesh );
+
+			geometry = new TreesGeometry( mesh );
+			material = new THREE.MeshBasicMaterial( {
+				side: THREE.DoubleSide, vertexColors: true
+			} );
+			mesh = new THREE.Mesh( geometry, material );
+			scene.add( mesh );
+
+			geometry = new SkyGeometry();
+			material = new THREE.MeshBasicMaterial( { color: 0xffffff } );
+			mesh = new THREE.Mesh( geometry, material );
+			scene.add( mesh );
+
+			//
+
+			const PI2 = Math.PI * 2;
+
+			const curve = ( function () {
+
+				const vector = new THREE.Vector3();
+				const vector2 = new THREE.Vector3();
+
+				return {
+
+					getPointAt: function ( t ) {
+
+						t = t * PI2;
+
+						const x = Math.sin( t * 3 ) * Math.cos( t * 4 ) * 50;
+						const y = Math.sin( t * 10 ) * 2 + Math.cos( t * 17 ) * 2 + 5;
+						const z = Math.sin( t ) * Math.sin( t * 4 ) * 50;
+
+						return vector.set( x, y, z ).multiplyScalar( 2 );
+
+					},
+
+					getTangentAt: function ( t ) {
+
+						const delta = 0.0001;
+						const t1 = Math.max( 0, t - delta );
+						const t2 = Math.min( 1, t + delta );
+
+						return vector2.copy( this.getPointAt( t2 ) )
+							.sub( this.getPointAt( t1 ) ).normalize();
+
+					}
+
+				};
+
+			} )();
+
+			geometry = new RollerCoasterGeometry( curve, 1500 );
+			material = new THREE.MeshPhongMaterial( {
+				vertexColors: true
+			} );
+			mesh = new THREE.Mesh( geometry, material );
+			scene.add( mesh );
+
+			geometry = new RollerCoasterLiftersGeometry( curve, 100 );
+			material = new THREE.MeshPhongMaterial();
+			mesh = new THREE.Mesh( geometry, material );
+			mesh.position.y = 0.1;
+			scene.add( mesh );
+
+			geometry = new RollerCoasterShadowGeometry( curve, 500 );
+			material = new THREE.MeshBasicMaterial( {
+				color: 0x305000, depthWrite: false, transparent: true
+			} );
+			mesh = new THREE.Mesh( geometry, material );
+			mesh.position.y = 0.1;
+			scene.add( mesh );
+
+			const funfairs = [];
+
+			//
+
+			// Create floating ABSTRACT text that rotates
+			const treeGroup = new THREE.Group();
+			
+			// Load font and create 3D text
+			const loader = new FontLoader();
+			loader.load( 'https://threejs.org/examples/fonts/helvetiker_regular.typeface.json', function ( font ) {
+				
+				const textGeometry = new TextGeometry( 'ABSTRACT', {
+					font: font,
+					size: 2,
+					height: 0.1,
+					curveSegments: 8,
+					bevelEnabled: false
+				} );
+				
+				textGeometry.computeBoundingBox();
+				const textWidth = textGeometry.boundingBox.max.x - textGeometry.boundingBox.min.x;
+				
+				const textMaterial = new THREE.MeshLambertMaterial( { color: 0x228B22 } );
+				const textMesh = new THREE.Mesh( textGeometry, textMaterial );
+				
+				// Center the text above the trunk
+				textMesh.position.set( -textWidth / 2, 20, 0 );
+				treeGroup.add( textMesh );
+				
+			} );
+			
+			treeGroup.position.set( -80, 0, -70 );
+			scene.add( treeGroup );
+			funfairs.push( treeGroup );
+
+			//
+
+			window.addEventListener( 'resize', onWindowResize );
+
+			function onWindowResize() {
+
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+
+				renderer.setSize( window.innerWidth, window.innerHeight );
+
+			}
+
+			//
+
+			function animate() {
+
+				const time = performance.now();
+				const delta = time - prevTime;
+
+				for ( let i = 0; i < funfairs.length; i ++ ) {
+
+					funfairs[ i ].rotation.y = time * 0.0004;
+
+				}
+
+				//
+
+				window.progress += velocity;
+				window.progress = window.progress % 1;
+
+				position.copy( curve.getPointAt( window.progress ) );
+				position.y += 0.3;
+
+				train.position.copy( position );
+
+				tangent.copy( curve.getTangentAt( progress ) );
+
+				// Only apply gravity when no modal is open
+				if (!window.isModalOpen) {
+					velocity -= tangent.y * 0.0000001 * delta;
+					velocity = Math.max( 0.00004, Math.min( 0.0002, velocity ) );
+				}
+
+				train.lookAt( lookAt.copy( position ).sub( tangent ) );
+
+				// Check for modal triggers
+				checkModalTrigger();
+
+				//
+
+				renderer.render( scene, camera );
+
+				prevTime = time;
+
+			}
+
+		</script>
+
+	</body>
+</html>

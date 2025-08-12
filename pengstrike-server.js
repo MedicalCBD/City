@@ -237,7 +237,7 @@ server.on('request', (req, res) => {
     
     // default to city.html
     if (filePath === '/') {
-        filePath = '/three.js/examples/city.html';
+        filePath = '/city.html';
     }
     
     // remove query parameters

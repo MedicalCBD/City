@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>$PARTY</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<link type="text/css" rel="stylesheet" href="main.css">
+		<style>
+			#blocker {
+				position: absolute;
+				width: 100%;
+				height: 100%;
+				background-color: rgba(0,0,0,0.5);
+			}
+
+			#instructions {
+				width: 100%;
+				height: 100%;
+
+				display: flex;
+				flex-direction: column;
+				justify-content: center;
+				align-items: center;
+
+				text-align: center;
+				font-size: 14px;
+				cursor: pointer;
+			}
+
+			.nav-button {
+				position: fixed;
+				top: 20px;
+				right: 20px;
+				width: 160px;
+				height: 50px;
+				border: 3px solid #000;
+				border-radius: 12px;
+				cursor: pointer;
+				font-family: 'Courier New', monospace;
+				font-size: 14px;
+				font-weight: bold;
+				text-transform: uppercase;
+				z-index: 1000;
+				transition: all 0.1s ease;
+				image-rendering: pixelated;
+				text-shadow: 1px 1px 0 #000;
+				background: linear-gradient(to bottom, #00CED1 0%, #20B2AA 50%, #008B8B 100%);
+				color: #000;
+			}
+			
+			.nav-button:hover {
+				transform: translateY(2px);
+			}
+			
+			.nav-button:active {
+				transform: translateY(6px);
+			}
+			
+			.loading-overlay {
+				position: fixed;
+				top: 0;
+				left: 0;
+				width: 100%;
+				height: 100%;
+				background: rgba(0, 0, 0, 0.8);
+				display: none;
+				justify-content: center;
+				align-items: center;
+				z-index: 9999;
+			}
+			
+			.loading-spinner {
+				width: 60px;
+				height: 60px;
+				border: 6px solid #f3f3f3;
+				border-top: 6px solid #3498db;
+				border-radius: 50%;
+				animation: spin 1s linear infinite;
+			}
+			
+			@keyframes spin {
+				0% { transform: rotate(0deg); }
+				100% { transform: rotate(360deg); }
+			}
+			.player-info {
+				position: fixed;
+				top: 20px;
+				left: 20px;
+				background: rgba(0, 0, 0, 0.7);
+				color: white;
+				padding: 10px 15px;
+				border-radius: 5px;
+				font-family: Arial, sans-serif;
+				font-size: 14px;
+				z-index: 1000;
+			}
+			.connection-status {
+				position: fixed;
+				bottom: 20px;
+				left: 20px;
+				background: rgba(0, 0, 0, 0.7);
+				color: white;
+				padding: 10px 15px;
+				border-radius: 5px;
+				font-family: Arial, sans-serif;
+				font-size: 14px;
+				z-index: 1000;
+			}
+			.connected { color: #4CAF50; }
+			.disconnected { color: #f44336; }
+		</style>
+		
+		<!-- Arcade button sound -->
+		        <audio id="arcadeSound" preload="auto">
+            <source src="button.mp3" type="audio/mpeg">
+        </audio>
+		
+		<script>
+			// Arcade button sound function
+			function playButtonSound() {
+				const audio = document.getElementById('arcadeSound');
+				audio.currentTime = 0;
+				audio.volume = 0.5;
+				audio.play().catch(e => console.log('Audio play failed:', e));
+			}
+			
+			// Show loading overlay
+			function showLoading() {
+				document.getElementById('loadingOverlay').style.display = 'flex';
+			}
+			
+			// Add click handlers to all buttons
+			document.addEventListener('DOMContentLoaded', function() {
+				const buttons = document.querySelectorAll('.nav-button');
+				buttons.forEach(button => {
+					button.addEventListener('click', function(e) {
+						e.preventDefault();
+						playButtonSound();
+						showLoading();
+						
+						// Store the original onclick
+						const originalOnClick = button.getAttribute('onclick');
+						
+						// Delay navigation by 1.5 seconds
+						setTimeout(() => {
+							if (originalOnClick) {
+								// Execute the original onclick
+								eval(originalOnClick);
+							}
+						}, 1500);
+					});
+				});
+			});
+		</script>
+	</head>
+	<body>
+		<!-- Loading overlay -->
+		<div class="loading-overlay" id="loadingOverlay">
+			<div class="loading-spinner"></div>
+		</div>
+		
+		            <button class="nav-button" data-url="city.html">return to the city</button>
+		<div class="player-info" id="playerInfo">players: 0</div>
+		<div class="connection-status" id="connectionStatus">connecting...</div>
+		<div id="blocker">
+			<div id="instructions">
+				<p style="font-size:36px">
+					Click to play
+				</p>
+				<p>
+					Move: WASD<br/>
+					Jump: SPACE<br/>
+					Look: MOUSE
+				</p>
+			</div>
+		</div>
+
+		<script type="importmap">
+			{
+				"imports": {
+					"three": "../build/three.module.js",
+					"three/addons/": "./jsm/"
+				}
+			}
+		</script>
+
+		<script type="module">
+
+			import * as THREE from 'three';
+			import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
+
+			let camera, scene, renderer, controls;
+
+			const objects = [];
+
+			let raycaster;
+
+			let moveForward = false;
+			let moveBackward = false;
+			let moveLeft = false;
+			let moveRight = false;
+			let canJump = false;
+
+			let prevTime = performance.now();
+			const velocity = new THREE.Vector3();
+			const direction = new THREE.Vector3();
+			const vertex = new THREE.Vector3();
+			const color = new THREE.Color();
+
+			// multiplayer variables
+			let ws = null;
+			let playerId = null;
+			let playerColor = null;
+			const otherPlayers = new Map();
+
+			// create penguin mesh
+			function createPenguin(penguinColor) {
+				const penguinGroup = new THREE.Group();
+				
+				// body (black) - 5x bigger
+				const bodyGeometry = new THREE.CapsuleGeometry(1.5, 4.0, 4, 8);
+				const bodyMaterial = new THREE.MeshLambertMaterial({ color: 0x1a1a1a });
+				const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+				body.castShadow = true;
+				body.receiveShadow = true;
+				penguinGroup.add(body);
+				
+				// belly (white) - 5x bigger
+				const bellyGeometry = new THREE.CapsuleGeometry(1.25, 3.0, 4, 8);
+				const bellyMaterial = new THREE.MeshLambertMaterial({ color: 0xffffff });
+				const belly = new THREE.Mesh(bellyGeometry, bellyMaterial);
+				belly.position.z = 0.5;
+				belly.castShadow = true;
+				belly.receiveShadow = true;
+				penguinGroup.add(belly);
+				
+				// head (black) - 5x bigger
+				const headGeometry = new THREE.SphereGeometry(1.25, 8, 8);
+				const headMaterial = new THREE.MeshLambertMaterial({ color: 0x1a1a1a });
+				const head = new THREE.Mesh(headGeometry, headMaterial);
+				head.position.y = 3.0;
+				head.castShadow = true;
+				head.receiveShadow = true;
+				penguinGroup.add(head);
+				
+				// eyes (white) - 5x bigger
+				const eyeGeometry = new THREE.SphereGeometry(0.15, 4, 4);
+				const eyeMaterial = new THREE.MeshLambertMaterial({ color: 0xffffff });
+				const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+				leftEye.position.set(-0.4, 3.25, 1.0);
+				penguinGroup.add(leftEye);
+				const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+				rightEye.position.set(0.4, 3.25, 1.0);
+				penguinGroup.add(rightEye);
+				
+				// pupils (black) - 5x bigger
+				const pupilGeometry = new THREE.SphereGeometry(0.075, 4, 4);
+				const pupilMaterial = new THREE.MeshLambertMaterial({ color: 0x000000 });
+				const leftPupil = new THREE.Mesh(pupilGeometry, pupilMaterial);
+				leftPupil.position.set(-0.4, 3.25, 1.1);
+				penguinGroup.add(leftPupil);
+				const rightPupil = new THREE.Mesh(pupilGeometry, pupilMaterial);
+				rightPupil.position.set(0.4, 3.25, 1.1);
+				penguinGroup.add(rightPupil);
+				
+				// beak (orange) - 5x bigger
+				const beakGeometry = new THREE.ConeGeometry(0.15, 0.4, 4);
+				const beakMaterial = new THREE.MeshLambertMaterial({ color: 0xff6600 });
+				const beak = new THREE.Mesh(beakGeometry, beakMaterial);
+				beak.position.set(0, 2.75, 1.25);
+				beak.rotation.x = Math.PI / 2;
+				penguinGroup.add(beak);
+				
+				// wings (black) - 5x bigger
+				const wingGeometry = new THREE.CapsuleGeometry(0.25, 2.0, 4, 4);
+				const wingMaterial = new THREE.MeshLambertMaterial({ color: 0x1a1a1a });
+				const leftWing = new THREE.Mesh(wingGeometry, wingMaterial);
+				leftWing.position.set(-1.75, 1.0, 0);
+				leftWing.rotation.z = Math.PI / 2;
+				leftWing.castShadow = true;
+				leftWing.receiveShadow = true;
+				penguinGroup.add(leftWing);
+				const rightWing = new THREE.Mesh(wingGeometry, wingMaterial);
+				rightWing.position.set(1.75, 1.0, 0);
+				rightWing.rotation.z = -Math.PI / 2;
+				rightWing.castShadow = true;
+				rightWing.receiveShadow = true;
+				penguinGroup.add(rightWing);
+				
+				// feet (orange) - 5x bigger
+				const footGeometry = new THREE.CapsuleGeometry(0.2, 0.75, 4, 4);
+				const footMaterial = new THREE.MeshLambertMaterial({ color: 0xff6600 });
+				const leftFoot = new THREE.Mesh(footGeometry, footMaterial);
+				leftFoot.position.set(-0.75, -2.0, 0);
+				leftFoot.rotation.x = Math.PI / 2;
+				leftFoot.castShadow = true;
+				leftFoot.receiveShadow = true;
+				penguinGroup.add(leftFoot);
+				const rightFoot = new THREE.Mesh(footGeometry, footMaterial);
+				rightFoot.position.set(0.75, -2.0, 0);
+				rightFoot.rotation.x = Math.PI / 2;
+				rightFoot.castShadow = true;
+				rightFoot.receiveShadow = true;
+				penguinGroup.add(rightFoot);
+				
+				// add colored hat to distinguish players - 5x bigger
+				const hatGeometry = new THREE.ConeGeometry(1.0, 1.5, 8);
+				const hatMaterial = new THREE.MeshLambertMaterial({ color: penguinColor });
+				const hat = new THREE.Mesh(hatGeometry, hatMaterial);
+				hat.position.y = 4.5;
+				hat.castShadow = true;
+				hat.receiveShadow = true;
+				penguinGroup.add(hat);
+				
+				return penguinGroup;
+			}
+
+			// websocket connection
+			function connectWebSocket() {
+				const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+				const host = window.location.hostname;
+				const port = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? '8081' : '';
+				const wsUrl = port ? `${protocol}//${host}:${port}/ws` : `${protocol}//${host}/ws`;
+				ws = new WebSocket(wsUrl);
+				
+				ws.onopen = () => {
+					updateConnectionStatus('connected', true);
+					// send game type to server
+					ws.send(JSON.stringify({
+						type: 'gameType',
+						gameType: 'climbandwin'
+					}));
+				};
+				
+				ws.onclose = () => {
+					updateConnectionStatus('disconnected', false);
+					// try to reconnect after 3 seconds
+					setTimeout(connectWebSocket, 3000);
+				};
+				
+				ws.onmessage = (event) => {
+					try {
+						const data = JSON.parse(event.data);
+						handleWebSocketMessage(data);
+					} catch (error) {
+						console.error('error parsing websocket message:', error);
+					}
+				};
+			}
+
+			function handleWebSocketMessage(data) {
+				try {
+					switch (data.type) {
+						case 'init':
+							playerId = data.playerId;
+							playerColor = data.playerColor;
+							console.log('initialized with player id:', playerId, 'color:', playerColor);
+							// add existing players
+							if (data.players && Array.isArray(data.players)) {
+								data.players.forEach(player => {
+									addOtherPlayer(player);
+								});
+							}
+							updatePlayerCount();
+							break;
+							
+						case 'playerJoined':
+							if (data.player && data.player.id !== playerId) {
+								addOtherPlayer(data.player);
+								updatePlayerCount();
+							}
+							break;
+							
+						case 'playerUpdate':
+							if (data.playerId !== playerId) {
+								updateOtherPlayer(data.playerId, data.position, data.rotation, data.velocity, data.onFloor);
+							}
+							break;
+							
+						case 'playerLeft':
+							removeOtherPlayer(data.playerId);
+							updatePlayerCount();
+							break;
+							
+						default:
+							console.log('unknown message type:', data.type);
+					}
+				} catch (error) {
+					console.error('error handling websocket message:', error);
+				}
+			}
+
+			function addOtherPlayer(player) {
+				try {
+					// check if player already exists
+					if (otherPlayers.has(player.id)) {
+						console.log('player already exists:', player.id);
+						return;
+					}
+					
+					const penguinMesh = createPenguin(player.color);
+					scene.add(penguinMesh);
+					
+					otherPlayers.set(player.id, {
+						mesh: penguinMesh,
+						position: new THREE.Vector3(player.position.x, player.position.y, player.position.z),
+						rotation: new THREE.Euler(player.rotation.x, player.rotation.y, player.rotation.z),
+						velocity: new THREE.Vector3(player.velocity.x, player.velocity.y, player.velocity.z),
+						onFloor: player.onFloor
+					});
+					
+					console.log('added penguin player:', player.id, 'color:', player.color);
+				} catch (error) {
+					console.error('error adding player:', error);
+				}
+			}
+
+			function updateOtherPlayer(id, position, rotation, velocity, onFloor) {
+				const player = otherPlayers.get(id);
+				if (player) {
+					player.position.set(position.x, position.y, position.z);
+					// fix penguin orientation - make it face the direction it's looking
+					player.rotation.set(rotation.x, rotation.y, rotation.z);
+					// rotate the penguin 180 degrees so the front (beak) faces forward
+					player.mesh.rotation.y = rotation.y + Math.PI;
+					player.velocity.set(velocity.x, velocity.y, velocity.z);
+					player.onFloor = onFloor;
+				}
+			}
+
+			function removeOtherPlayer(id) {
+				const player = otherPlayers.get(id);
+				if (player) {
+					scene.remove(player.mesh);
+					otherPlayers.delete(id);
+				}
+			}
+
+			function updateOtherPlayers(deltaTime) {
+				otherPlayers.forEach(player => {
+					try {
+						// smoother interpolation for other players
+						player.mesh.position.lerp(player.position, 0.05);
+						// use the corrected rotation for penguin orientation
+						const targetRotation = new THREE.Euler(player.rotation.x, player.rotation.y + Math.PI, player.rotation.z);
+						player.mesh.rotation.lerp(targetRotation, 0.05);
+					} catch (error) {
+						console.error('error updating player:', error);
+					}
+				});
+			}
+
+			function updateConnectionStatus(status, connected) {
+				const statusElement = document.getElementById('connectionStatus');
+				statusElement.textContent = status;
+				statusElement.className = `connection-status ${connected ? 'connected' : 'disconnected'}`;
+			}
+
+			function updatePlayerCount() {
+				const count = otherPlayers.size + 1;
+				document.getElementById('playerInfo').textContent = `players: ${count}`;
+			}
+
+			init();
+
+			function init() {
+
+				camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 1000 );
+				camera.position.y = 10;
+
+				scene = new THREE.Scene();
+				scene.background = new THREE.Color( 0xffffff );
+				scene.fog = new THREE.Fog( 0xffffff, 0, 750 );
+
+				const light = new THREE.HemisphereLight( 0xeeeeff, 0x777788, 2.5 );
+				light.position.set( 0.5, 1, 0.75 );
+				scene.add( light );
+
+				controls = new PointerLockControls( camera, document.body );
+
+				const blocker = document.getElementById( 'blocker' );
+				const instructions = document.getElementById( 'instructions' );
+
+				instructions.addEventListener( 'click', function () {
+
+					controls.lock();
+
+				} );
+
+				controls.addEventListener( 'lock', function () {
+
+					instructions.style.display = 'none';
+					blocker.style.display = 'none';
+
+				} );
+
+				controls.addEventListener( 'unlock', function () {
+
+					blocker.style.display = 'block';
+					instructions.style.display = '';
+
+				} );
+
+				scene.add( controls.object );
+
+				const onKeyDown = function ( event ) {
+
+					switch ( event.code ) {
+
+						case 'ArrowUp':
+						case 'KeyW':
+							moveForward = true;
+							break;
+
+						case 'ArrowLeft':
+						case 'KeyA':
+							moveLeft = true;
+							break;
+
+						case 'ArrowDown':
+						case 'KeyS':
+							moveBackward = true;
+							break;
+
+						case 'ArrowRight':
+						case 'KeyD':
+							moveRight = true;
+							break;
+
+						case 'Space':
+							if ( canJump === true ) velocity.y += 350;
+							canJump = false;
+							break;
+
+					}
+
+				};
+
+				const onKeyUp = function ( event ) {
+
+					switch ( event.code ) {
+
+						case 'ArrowUp':
+						case 'KeyW':
+							moveForward = false;
+							break;
+
+						case 'ArrowLeft':
+						case 'KeyA':
+							moveLeft = false;
+							break;
+
+						case 'ArrowDown':
+						case 'KeyS':
+							moveBackward = false;
+							break;
+
+						case 'ArrowRight':
+						case 'KeyD':
+							moveRight = false;
+							break;
+
+					}
+
+				};
+
+				document.addEventListener( 'keydown', onKeyDown );
+				document.addEventListener( 'keyup', onKeyUp );
+
+				raycaster = new THREE.Raycaster( new THREE.Vector3(), new THREE.Vector3( 0, - 1, 0 ), 0, 10 );
+
+				// floor
+
+				let floorGeometry = new THREE.PlaneGeometry( 2000, 2000, 100, 100 );
+				floorGeometry.rotateX( - Math.PI / 2 );
+
+				// vertex displacement
+
+				let position = floorGeometry.attributes.position;
+
+				for ( let i = 0, l = position.count; i < l; i ++ ) {
+
+					vertex.fromBufferAttribute( position, i );
+
+					vertex.x += Math.random() * 20 - 10;
+					vertex.y += Math.random() * 2;
+					vertex.z += Math.random() * 20 - 10;
+
+					position.setXYZ( i, vertex.x, vertex.y, vertex.z );
+
+				}
+
+				floorGeometry = floorGeometry.toNonIndexed(); // ensure each face has unique vertices
+
+				position = floorGeometry.attributes.position;
+				const colorsFloor = [];
+
+				for ( let i = 0, l = position.count; i < l; i ++ ) {
+
+					color.setHSL( Math.random() * 0.3 + 0.5, 0.75, Math.random() * 0.25 + 0.75, THREE.SRGBColorSpace );
+					colorsFloor.push( color.r, color.g, color.b );
+
+				}
+
+				floorGeometry.setAttribute( 'color', new THREE.Float32BufferAttribute( colorsFloor, 3 ) );
+
+				const floorMaterial = new THREE.MeshBasicMaterial( { vertexColors: true } );
+
+				const floor = new THREE.Mesh( floorGeometry, floorMaterial );
+				scene.add( floor );
+
+				// objects
+
+				const boxGeometry = new THREE.BoxGeometry( 20, 20, 20 ).toNonIndexed();
+
+				position = boxGeometry.attributes.position;
+				const colorsBox = [];
+
+				for ( let i = 0, l = position.count; i < l; i ++ ) {
+
+					color.setHSL( Math.random() * 0.3 + 0.3, 0.75, Math.random() * 0.25 + 0.75, THREE.SRGBColorSpace );
+					colorsBox.push( color.r, color.g, color.b );
+
+				}
+
+				boxGeometry.setAttribute( 'color', new THREE.Float32BufferAttribute( colorsBox, 3 ) );
+
+				for ( let i = 0; i < 500; i ++ ) {
+
+					const boxMaterial = new THREE.MeshPhongMaterial( { specular: 0xffffff, flatShading: true, vertexColors: true } );
+					boxMaterial.color.setHSL( Math.random() * 0.2 + 0.3, 0.75, Math.random() * 0.25 + 0.75, THREE.SRGBColorSpace );
+
+					const box = new THREE.Mesh( boxGeometry, boxMaterial );
+					box.position.x = Math.floor( Math.random() * 20 - 10 ) * 20;
+					box.position.y = Math.floor( Math.random() * 20 ) * 20 + 10;
+					box.position.z = Math.floor( Math.random() * 20 - 10 ) * 20;
+
+					scene.add( box );
+					objects.push( box );
+
+				}
+
+				//
+
+				renderer = new THREE.WebGLRenderer( { antialias: true } );
+				renderer.setPixelRatio( window.devicePixelRatio );
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				renderer.setAnimationLoop( animate );
+				document.body.appendChild( renderer.domElement );
+
+				//
+
+				window.addEventListener( 'resize', onWindowResize );
+
+				// start websocket connection
+				connectWebSocket();
+
+			}
+
+			function onWindowResize() {
+
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+
+				renderer.setSize( window.innerWidth, window.innerHeight );
+
+			}
+
+			function animate() {
+
+				const time = performance.now();
+				const delta = ( time - prevTime ) / 1000;
+
+				if ( controls.isLocked === true ) {
+
+					raycaster.ray.origin.copy( controls.object.position );
+					raycaster.ray.origin.y -= 10;
+
+					const intersections = raycaster.intersectObjects( objects, false );
+
+					const onObject = intersections.length > 0;
+
+					velocity.x -= velocity.x * 10.0 * delta;
+					velocity.z -= velocity.z * 10.0 * delta;
+
+					velocity.y -= 9.8 * 100.0 * delta; // 100.0 = mass
+
+					direction.z = Number( moveForward ) - Number( moveBackward );
+					direction.x = Number( moveRight ) - Number( moveLeft );
+					direction.normalize(); // this ensures consistent movements in all directions
+
+					if ( moveForward || moveBackward ) velocity.z -= direction.z * 400.0 * delta;
+					if ( moveLeft || moveRight ) velocity.x -= direction.x * 400.0 * delta;
+
+					if ( onObject === true ) {
+
+						velocity.y = Math.max( 0, velocity.y );
+						canJump = true;
+
+					}
+
+					controls.moveRight( - velocity.x * delta );
+					controls.moveForward( - velocity.z * delta );
+
+					controls.object.position.y += ( velocity.y * delta ); // new behavior
+
+					if ( controls.object.position.y < 10 ) {
+
+						velocity.y = 0;
+						controls.object.position.y = 10;
+
+						canJump = true;
+
+					}
+
+					// send position update to server (throttled to avoid spam)
+					if (ws && ws.readyState === WebSocket.OPEN) {
+						// only send updates every 3 frames to reduce network traffic
+						if (!window.frameCount) window.frameCount = 0;
+						window.frameCount++;
+						
+						if (window.frameCount % 3 === 0) {
+							ws.send(JSON.stringify({
+								type: 'updatePosition',
+								position: {
+									x: controls.object.position.x,
+									y: controls.object.position.y,
+									z: controls.object.position.z
+								},
+								rotation: {
+									x: camera.rotation.x,
+									y: camera.rotation.y,
+									z: camera.rotation.z
+								},
+								velocity: {
+									x: velocity.x,
+									y: velocity.y,
+									z: velocity.z
+								},
+								onFloor: canJump
+							}));
+						}
+					}
+
+				}
+
+				// update multiplayer elements
+				updateOtherPlayers(delta);
+
+				prevTime = time;
+
+				renderer.render( scene, camera );
+
+			}
+
+		</script>
+	</body>
+</html>
