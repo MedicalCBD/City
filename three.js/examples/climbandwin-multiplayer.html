@@ -55,6 +55,33 @@
 			.nav-button:active {
 				transform: translateY(6px);
 			}
+			
+			.loading-overlay {
+				position: fixed;
+				top: 0;
+				left: 0;
+				width: 100%;
+				height: 100%;
+				background: rgba(0, 0, 0, 0.8);
+				display: none;
+				justify-content: center;
+				align-items: center;
+				z-index: 9999;
+			}
+			
+			.loading-spinner {
+				width: 60px;
+				height: 60px;
+				border: 6px solid #f3f3f3;
+				border-top: 6px solid #3498db;
+				border-radius: 50%;
+				animation: spin 1s linear infinite;
+			}
+			
+			@keyframes spin {
+				0% { transform: rotate(0deg); }
+				100% { transform: rotate(360deg); }
+			}
 			.player-info {
 				position: fixed;
 				top: 20px;
@@ -97,22 +124,41 @@
 				audio.play().catch(e => console.log('Audio play failed:', e));
 			}
 			
+			// Show loading overlay
+			function showLoading() {
+				document.getElementById('loadingOverlay').style.display = 'flex';
+			}
+			
 			// Add click handlers to all buttons
 			document.addEventListener('DOMContentLoaded', function() {
 				const buttons = document.querySelectorAll('.nav-button');
 				buttons.forEach(button => {
 					button.addEventListener('click', function(e) {
+						e.preventDefault();
 						playButtonSound();
-						// Small delay to let sound play before navigation
+						showLoading();
+						
+						// Store the original onclick
+						const originalOnClick = button.getAttribute('onclick');
+						
+						// Delay navigation by 1.5 seconds
 						setTimeout(() => {
-							// The original onclick will handle navigation
-						}, 150);
+							if (originalOnClick) {
+								// Execute the original onclick
+								eval(originalOnClick);
+							}
+						}, 1500);
 					});
 				});
 			});
 		</script>
 	</head>
 	<body>
+		<!-- Loading overlay -->
+		<div class="loading-overlay" id="loadingOverlay">
+			<div class="loading-spinner"></div>
+		</div>
+		
 		<button class="nav-button" onclick="window.location.href='city.html'">return to the city</button>
 		<div class="player-info" id="playerInfo">players: 0</div>
 		<div class="connection-status" id="connectionStatus">connecting...</div>
