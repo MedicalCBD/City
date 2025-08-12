@@ -133,8 +133,9 @@
 		<script>
 			// Arcade button sound function
 			function playButtonSound() {
-				const audio = document.getElementById('buttonSound');
+				const audio = document.getElementById('arcadeSound');
 				audio.currentTime = 0;
+				audio.volume = 0.5;
 				audio.play().catch(e => console.log('Audio play failed:', e));
 			}
 			
@@ -147,7 +148,7 @@
 						// Small delay to let sound play before navigation
 						setTimeout(() => {
 							// The original onclick will handle navigation
-						}, 100);
+						}, 150);
 					});
 				});
 			});
