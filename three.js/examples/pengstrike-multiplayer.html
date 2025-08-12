@@ -117,9 +117,98 @@
 			const otherPlayers = new Map();
 			const multiplayerBalls = new Map();
 			
-			// player meshes for other players
-			const playerGeometry = new THREE.CapsuleGeometry( 0.35, 0.65, 4, 8 );
-			const playerMaterial = new THREE.MeshLambertMaterial( { color: 0x00ff00 } );
+			// player meshes for other players - penguin model
+			function createPenguin() {
+				const penguinGroup = new THREE.Group();
+				
+				// body (black)
+				const bodyGeometry = new THREE.CapsuleGeometry(0.3, 0.8, 4, 8);
+				const bodyMaterial = new THREE.MeshLambertMaterial({ color: 0x1a1a1a });
+				const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+				body.castShadow = true;
+				body.receiveShadow = true;
+				penguinGroup.add(body);
+				
+				// belly (white)
+				const bellyGeometry = new THREE.CapsuleGeometry(0.25, 0.6, 4, 8);
+				const bellyMaterial = new THREE.MeshLambertMaterial({ color: 0xffffff });
+				const belly = new THREE.Mesh(bellyGeometry, bellyMaterial);
+				belly.position.z = 0.1;
+				belly.castShadow = true;
+				belly.receiveShadow = true;
+				penguinGroup.add(belly);
+				
+				// head (black)
+				const headGeometry = new THREE.SphereGeometry(0.25, 8, 8);
+				const headMaterial = new THREE.MeshLambertMaterial({ color: 0x1a1a1a });
+				const head = new THREE.Mesh(headGeometry, headMaterial);
+				head.position.y = 0.6;
+				head.castShadow = true;
+				head.receiveShadow = true;
+				penguinGroup.add(head);
+				
+				// eyes (white)
+				const eyeGeometry = new THREE.SphereGeometry(0.03, 4, 4);
+				const eyeMaterial = new THREE.MeshLambertMaterial({ color: 0xffffff });
+				const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+				leftEye.position.set(-0.08, 0.65, 0.2);
+				penguinGroup.add(leftEye);
+				const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+				rightEye.position.set(0.08, 0.65, 0.2);
+				penguinGroup.add(rightEye);
+				
+				// pupils (black)
+				const pupilGeometry = new THREE.SphereGeometry(0.015, 4, 4);
+				const pupilMaterial = new THREE.MeshLambertMaterial({ color: 0x000000 });
+				const leftPupil = new THREE.Mesh(pupilGeometry, pupilMaterial);
+				leftPupil.position.set(-0.08, 0.65, 0.22);
+				penguinGroup.add(leftPupil);
+				const rightPupil = new THREE.Mesh(pupilGeometry, pupilMaterial);
+				rightPupil.position.set(0.08, 0.65, 0.22);
+				penguinGroup.add(rightPupil);
+				
+				// beak (orange)
+				const beakGeometry = new THREE.ConeGeometry(0.03, 0.08, 4);
+				const beakMaterial = new THREE.MeshLambertMaterial({ color: 0xff6600 });
+				const beak = new THREE.Mesh(beakGeometry, beakMaterial);
+				beak.position.set(0, 0.55, 0.25);
+				beak.rotation.x = Math.PI / 2;
+				penguinGroup.add(beak);
+				
+				// wings (black)
+				const wingGeometry = new THREE.CapsuleGeometry(0.05, 0.4, 4, 4);
+				const wingMaterial = new THREE.MeshLambertMaterial({ color: 0x1a1a1a });
+				const leftWing = new THREE.Mesh(wingGeometry, wingMaterial);
+				leftWing.position.set(-0.35, 0.2, 0);
+				leftWing.rotation.z = Math.PI / 2;
+				leftWing.castShadow = true;
+				leftWing.receiveShadow = true;
+				penguinGroup.add(leftWing);
+				const rightWing = new THREE.Mesh(wingGeometry, wingMaterial);
+				rightWing.position.set(0.35, 0.2, 0);
+				rightWing.rotation.z = -Math.PI / 2;
+				rightWing.castShadow = true;
+				rightWing.receiveShadow = true;
+				penguinGroup.add(rightWing);
+				
+				// feet (orange)
+				const footGeometry = new THREE.CapsuleGeometry(0.04, 0.15, 4, 4);
+				const footMaterial = new THREE.MeshLambertMaterial({ color: 0xff6600 });
+				const leftFoot = new THREE.Mesh(footGeometry, footMaterial);
+				leftFoot.position.set(-0.15, -0.4, 0);
+				leftFoot.rotation.x = Math.PI / 2;
+				leftFoot.castShadow = true;
+				leftFoot.receiveShadow = true;
+				penguinGroup.add(leftFoot);
+				const rightFoot = new THREE.Mesh(footGeometry, footMaterial);
+				rightFoot.position.set(0.15, -0.4, 0);
+				rightFoot.rotation.x = Math.PI / 2;
+				rightFoot.castShadow = true;
+				rightFoot.receiveShadow = true;
+				penguinGroup.add(rightFoot);
+				
+				return penguinGroup;
+			}
 			
 			// ball geometry for multiplayer balls
 			const ballGeometry = new THREE.IcosahedronGeometry( 0.2, 5 );
@@ -249,20 +338,18 @@
 						return;
 					}
 					
-					const playerMesh = new THREE.Mesh(playerGeometry, playerMaterial);
-					playerMesh.castShadow = true;
-					playerMesh.receiveShadow = true;
-					scene.add(playerMesh);
+					const penguinMesh = createPenguin();
+					scene.add(penguinMesh);
 					
 					otherPlayers.set(player.id, {
-						mesh: playerMesh,
+						mesh: penguinMesh,
 						position: new THREE.Vector3(player.position.x, player.position.y, player.position.z),
 						rotation: new THREE.Euler(player.rotation.x, player.rotation.y, player.rotation.z),
 						velocity: new THREE.Vector3(player.velocity.x, player.velocity.y, player.velocity.z),
 						onFloor: player.onFloor
 					});
 					
-					console.log('added player:', player.id);
+					console.log('added penguin player:', player.id);
 				} catch (error) {
 					console.error('error adding player:', error);
 				}
