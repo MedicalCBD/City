@@ -235,9 +235,9 @@ function updateClimbandwinPlayerPosition(playerId, position, rotation, velocity,
 server.on('request', (req, res) => {
     let filePath = req.url;
     
-    // default to index.html
+    // default to city.html
     if (filePath === '/') {
-        filePath = '/index.html';
+        filePath = '/three.js/examples/city.html';
     }
     
     // remove query parameters
