@@ -118,7 +118,7 @@
 			const multiplayerBalls = new Map();
 			
 			// health system
-			const MAX_HEALTH = 3;
+			const MAX_HEALTH = 7; // increased from 3 to 7 hearts
 			const playerHealth = new Map(); // track health for all players
 			
 			// player meshes for other players - penguin model
@@ -507,7 +507,8 @@
 				multiplayerBalls.set(ball.id, {
 					mesh: ballMesh,
 					velocity: new THREE.Vector3(ball.velocity.x, ball.velocity.y, ball.velocity.z),
-					timestamp: ball.timestamp
+					timestamp: ball.timestamp,
+					ownerId: ball.ownerId || 'unknown' // track who threw the ball
 				});
 			}
 
@@ -519,9 +520,12 @@
 					
 					// check collision with other players
 					otherPlayers.forEach((player, playerId) => {
-						if (playerId !== playerId) { // don't hit yourself
+						// check if this ball belongs to the current player (don't hit yourself)
+						const ballOwner = ball.ownerId || 'unknown';
+						if (ballOwner !== playerId) {
 							const distance = ball.mesh.position.distanceTo(player.position);
 							if (distance < 0.5) { // collision radius
+								console.log(`ball hit player ${playerId}! distance: ${distance}`);
 								// apply damage
 								damagePlayer(playerId);
 								
@@ -649,7 +653,8 @@
 							x: sphere.velocity.x,
 							y: sphere.velocity.y,
 							z: sphere.velocity.z
-						}
+						},
+						ownerId: playerId // include who threw the ball
 					}));
 				}
 
