@@ -51,7 +51,7 @@
 				SkyGeometry
 			} from 'three/addons/misc/RollerCoaster.js';
 
-			import { VRButton } from 'three/addons/webxr/VRButton.js';
+			// import { VRButton } from 'three/addons/webxr/VRButton.js';
 			import { FontLoader } from 'three/addons/loaders/FontLoader.js';
 			import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
 
@@ -71,11 +71,11 @@
 			renderer.setPixelRatio( window.devicePixelRatio );
 			renderer.setSize( window.innerWidth, window.innerHeight );
 			renderer.setAnimationLoop( animate );
-			renderer.xr.enabled = true;
-			renderer.xr.setReferenceSpaceType( 'local' );
+			// renderer.xr.enabled = true;
+			// renderer.xr.setReferenceSpaceType( 'local' );
 			document.body.appendChild( renderer.domElement );
 
-			document.body.appendChild( VRButton.createButton( renderer ) );
+			// document.body.appendChild( VRButton.createButton( renderer ) );
 
 			//
 
