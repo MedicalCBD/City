@@ -189,53 +189,83 @@
 			}
 
 			function handleWebSocketMessage(data) {
-				switch (data.type) {
-					case 'init':
-						playerId = data.playerId;
-						// add existing players
-						data.players.forEach(player => {
-							addOtherPlayer(player);
-						});
-						// add existing balls
-						data.balls.forEach(ball => {
-							addMultiplayerBall(ball);
-						});
-						updatePlayerCount();
-						break;
-						
-					case 'playerJoined':
-						addOtherPlayer(data.player);
-						updatePlayerCount();
-						break;
-						
-					case 'playerUpdate':
-						updateOtherPlayer(data.playerId, data.position, data.rotation, data.velocity, data.onFloor);
-						break;
-						
-					case 'playerLeft':
-						removeOtherPlayer(data.playerId);
-						updatePlayerCount();
-						break;
-						
-					case 'ballThrown':
-						addMultiplayerBall(data.ball);
-						break;
+				try {
+					switch (data.type) {
+						case 'init':
+							playerId = data.playerId;
+							console.log('initialized with player id:', playerId);
+							// add existing players
+							if (data.players && Array.isArray(data.players)) {
+								data.players.forEach(player => {
+									addOtherPlayer(player);
+								});
+							}
+							// add existing balls
+							if (data.balls && Array.isArray(data.balls)) {
+								data.balls.forEach(ball => {
+									addMultiplayerBall(ball);
+								});
+							}
+							updatePlayerCount();
+							break;
+							
+						case 'playerJoined':
+							if (data.player && data.player.id !== playerId) {
+								addOtherPlayer(data.player);
+								updatePlayerCount();
+							}
+							break;
+							
+						case 'playerUpdate':
+							if (data.playerId !== playerId) {
+								updateOtherPlayer(data.playerId, data.position, data.rotation, data.velocity, data.onFloor);
+							}
+							break;
+							
+						case 'playerLeft':
+							removeOtherPlayer(data.playerId);
+							updatePlayerCount();
+							break;
+							
+						case 'ballThrown':
+							if (data.ball) {
+								addMultiplayerBall(data.ball);
+							}
+							break;
+							
+						default:
+							console.log('unknown message type:', data.type);
+					}
+				} catch (error) {
+					console.error('error handling websocket message:', error);
 				}
 			}
 
 			function addOtherPlayer(player) {
-				const playerMesh = new THREE.Mesh(playerGeometry, playerMaterial);
-				playerMesh.castShadow = true;
-				playerMesh.receiveShadow = true;
-				scene.add(playerMesh);
-				
-				otherPlayers.set(player.id, {
-					mesh: playerMesh,
-					position: new THREE.Vector3(player.position.x, player.position.y, player.position.z),
-					rotation: new THREE.Euler(player.rotation.x, player.rotation.y, player.rotation.z),
-					velocity: new THREE.Vector3(player.velocity.x, player.velocity.y, player.velocity.z),
-					onFloor: player.onFloor
-				});
+				try {
+					// check if player already exists
+					if (otherPlayers.has(player.id)) {
+						console.log('player already exists:', player.id);
+						return;
+					}
+					
+					const playerMesh = new THREE.Mesh(playerGeometry, playerMaterial);
+					playerMesh.castShadow = true;
+					playerMesh.receiveShadow = true;
+					scene.add(playerMesh);
+					
+					otherPlayers.set(player.id, {
+						mesh: playerMesh,
+						position: new THREE.Vector3(player.position.x, player.position.y, player.position.z),
+						rotation: new THREE.Euler(player.rotation.x, player.rotation.y, player.rotation.z),
+						velocity: new THREE.Vector3(player.velocity.x, player.velocity.y, player.velocity.z),
+						onFloor: player.onFloor
+					});
+					
+					console.log('added player:', player.id);
+				} catch (error) {
+					console.error('error adding player:', error);
+				}
 			}
 
 			function updateOtherPlayer(id, position, rotation, velocity, onFloor) {
@@ -286,9 +316,13 @@
 
 			function updateOtherPlayers(deltaTime) {
 				otherPlayers.forEach(player => {
-					// simple interpolation for other players
-					player.mesh.position.lerp(player.position, 0.1);
-					player.mesh.rotation.lerp(player.rotation, 0.1);
+					try {
+						// smoother interpolation for other players
+						player.mesh.position.lerp(player.position, 0.05);
+						player.mesh.rotation.lerp(player.rotation, 0.05);
+					} catch (error) {
+						console.error('error updating player:', error);
+					}
 				});
 			}
 
@@ -397,27 +431,33 @@
 
 				camera.position.copy( playerCollider.end );
 
-				// send position update to server
+				// send position update to server (throttled to avoid spam)
 				if (ws && ws.readyState === WebSocket.OPEN) {
-					ws.send(JSON.stringify({
-						type: 'updatePosition',
-						position: {
-							x: camera.position.x,
-							y: camera.position.y,
-							z: camera.position.z
-						},
-						rotation: {
-							x: camera.rotation.x,
-							y: camera.rotation.y,
-							z: camera.rotation.z
-						},
-						velocity: {
-							x: playerVelocity.x,
-							y: playerVelocity.y,
-							z: playerVelocity.z
-						},
-						onFloor: playerOnFloor
-					}));
+					// only send updates every 3 frames to reduce network traffic
+					if (!window.frameCount) window.frameCount = 0;
+					window.frameCount++;
+					
+					if (window.frameCount % 3 === 0) {
+						ws.send(JSON.stringify({
+							type: 'updatePosition',
+							position: {
+								x: camera.position.x,
+								y: camera.position.y,
+								z: camera.position.z
+							},
+							rotation: {
+								x: camera.rotation.x,
+								y: camera.rotation.y,
+								z: camera.rotation.z
+							},
+							velocity: {
+								x: playerVelocity.x,
+								y: playerVelocity.y,
+								z: playerVelocity.z
+							},
+							onFloor: playerOnFloor
+						}));
+					}
 				}
 			}
 
