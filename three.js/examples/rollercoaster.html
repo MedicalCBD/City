@@ -217,11 +217,22 @@
 				window.isModalOpen = false;
 				velocity = window.normalVelocity; // Resume normal speed
 				window.currentModalIndex++;
+				
+				// Schedule next modal to appear after 5 seconds
+				if (window.currentModalIndex < window.roadmapModals.length) {
+					window.modalScheduled = true;
+					setTimeout(() => {
+						const modal = window.roadmapModals[window.currentModalIndex];
+						showModal(modal.title, modal.text);
+						window.modalScheduled = false;
+					}, 5000);
+				}
 			}
 			
 			// Check if modal should be triggered
 			function checkModalTrigger() {
-				if (window.currentModalIndex < window.modalTriggers.length && !window.isModalOpen) {
+				// Only trigger modals based on progress if no modal is scheduled to appear
+				if (window.currentModalIndex < window.modalTriggers.length && !window.isModalOpen && !window.modalScheduled) {
 					const triggerPoint = window.modalTriggers[window.currentModalIndex];
 					if (progress >= triggerPoint && progress < triggerPoint + 0.01) {
 						const modal = window.roadmapModals[window.currentModalIndex];
@@ -318,6 +329,7 @@
 			window.currentModalIndex = 0;
 			window.normalVelocity = 0.0001;
 			window.slowVelocity = 0.00001;
+			window.modalScheduled = false;
 			
 			// Roadmap modals data - moved to global scope
 			window.roadmapModals = [
