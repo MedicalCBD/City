@@ -12,7 +12,7 @@
 				left: 50%;
 				transform: translateX(-50%);
 				display: flex;
-				gap: 20px;
+				gap: 15px;
 				z-index: 1000;
 				padding: 25px;
 				background: linear-gradient(to bottom, rgba(255, 255, 255, 0.95) 0%, rgba(220, 220, 220, 0.95) 100%);
@@ -20,10 +20,13 @@
 				border-radius: 15px;
 				box-shadow: 0 8px 0 #000, inset 0 3px 0 rgba(255, 255, 255, 0.7);
 				image-rendering: pixelated;
+				flex-wrap: wrap;
+				justify-content: center;
+				max-width: 90vw;
 			}
 			
 			.nav-button {
-				width: 180px;
+				width: 160px;
 				height: 50px;
 				border: 3px solid #000;
 				border-radius: 12px;
@@ -46,49 +49,79 @@
 				transform: translateY(6px);
 			}
 			
-			/* Rollercoaster button - Green */
+			/* Rollercoaster button - Orange */
 			.nav-button.rollercoaster {
-				background: linear-gradient(to bottom, #90EE90 0%, #32CD32 50%, #228B22 100%);
+				background: linear-gradient(to bottom, #FFB347 0%, #FF8C00 50%, #FF4500 100%);
 				color: #000;
-				box-shadow: 0 8px 0 #228B22, 0 8px 0 #000, 0 8px 0 #000;
+				box-shadow: 0 8px 0 #FF4500, 0 8px 0 #000, 0 8px 0 #000;
 			}
 			
 			.nav-button.rollercoaster:hover {
-				box-shadow: 0 6px 0 #228B22, 0 6px 0 #000, 0 6px 0 #000;
+				box-shadow: 0 6px 0 #FF4500, 0 6px 0 #000, 0 6px 0 #000;
 			}
 			
 			.nav-button.rollercoaster:active {
-				box-shadow: 0 2px 0 #228B22, 0 2px 0 #000, 0 2px 0 #000;
+				box-shadow: 0 2px 0 #FF4500, 0 2px 0 #000, 0 2px 0 #000;
 			}
 			
-			/* Pengstrike button - Blue */
+			/* Pengstrike button - Red */
 			.nav-button.pengstrike {
-				background: linear-gradient(to bottom, #87CEEB 0%, #4169E1 50%, #000080 100%);
+				background: linear-gradient(to bottom, #FF6B6B 0%, #DC143C 50%, #8B0000 100%);
 				color: #000;
-				box-shadow: 0 8px 0 #000080, 0 8px 0 #000, 0 8px 0 #000;
+				box-shadow: 0 8px 0 #8B0000, 0 8px 0 #000, 0 8px 0 #000;
 			}
 			
 			.nav-button.pengstrike:hover {
-				box-shadow: 0 6px 0 #000080, 0 6px 0 #000, 0 6px 0 #000;
+				box-shadow: 0 6px 0 #8B0000, 0 6px 0 #000, 0 6px 0 #000;
 			}
 			
 			.nav-button.pengstrike:active {
-				box-shadow: 0 2px 0 #000080, 0 2px 0 #000, 0 2px 0 #000;
+				box-shadow: 0 2px 0 #8B0000, 0 2px 0 #000, 0 2px 0 #000;
 			}
 			
-			/* Climb and Win button - Purple */
+			/* Climb and Win button - Cyan */
 			.nav-button.climbandwin {
-				background: linear-gradient(to bottom, #DDA0DD 0%, #9370DB 50%, #4B0082 100%);
+				background: linear-gradient(to bottom, #00CED1 0%, #20B2AA 50%, #008B8B 100%);
 				color: #000;
-				box-shadow: 0 8px 0 #4B0082, 0 8px 0 #000, 0 8px 0 #000;
+				box-shadow: 0 8px 0 #008B8B, 0 8px 0 #000, 0 8px 0 #000;
 			}
 			
 			.nav-button.climbandwin:hover {
-				box-shadow: 0 6px 0 #4B0082, 0 6px 0 #000, 0 6px 0 #000;
+				box-shadow: 0 6px 0 #008B8B, 0 6px 0 #000, 0 6px 0 #000;
 			}
 			
 			.nav-button.climbandwin:active {
-				box-shadow: 0 2px 0 #4B0082, 0 2px 0 #000, 0 2px 0 #000;
+				box-shadow: 0 2px 0 #008B8B, 0 2px 0 #000, 0 2px 0 #000;
+			}
+			
+			/* Twitter button - Blue */
+			.nav-button.twitter {
+				background: linear-gradient(to bottom, #1DA1F2 0%, #0D8BD9 50%, #0A5F8B 100%);
+				color: #000;
+				box-shadow: 0 8px 0 #0A5F8B, 0 8px 0 #000, 0 8px 0 #000;
+			}
+			
+			.nav-button.twitter:hover {
+				box-shadow: 0 6px 0 #0A5F8B, 0 6px 0 #000, 0 6px 0 #000;
+			}
+			
+			.nav-button.twitter:active {
+				box-shadow: 0 2px 0 #0A5F8B, 0 2px 0 #000, 0 2px 0 #000;
+			}
+			
+			/* Telegram button - Light Blue */
+			.nav-button.telegram {
+				background: linear-gradient(to bottom, #0088CC 0%, #0077B3 50%, #005580 100%);
+				color: #000;
+				box-shadow: 0 8px 0 #005580, 0 8px 0 #000, 0 8px 0 #000;
+			}
+			
+			.nav-button.telegram:hover {
+				box-shadow: 0 6px 0 #005580, 0 6px 0 #000, 0 6px 0 #000;
+			}
+			
+			.nav-button.telegram:active {
+				box-shadow: 0 2px 0 #005580, 0 2px 0 #000, 0 2px 0 #000;
 			}
 		</style>
 		
@@ -127,6 +160,8 @@
 			<button class="nav-button rollercoaster" onclick="window.location.href='rollercoaster.html'">go to rollercoaster</button>
 			<button class="nav-button pengstrike" onclick="window.location.href='pengstrike-multiplayer.html'">go to pengstrike</button>
 			<button class="nav-button climbandwin" onclick="window.location.href='climbandwin-multiplayer.html'">climb and win</button>
+			<button class="nav-button twitter" onclick="window.open('https://twitter.com', '_blank')">twitter</button>
+			<button class="nav-button telegram" onclick="window.open('https://telegram.org', '_blank')">telegram</button>
 		</div>
 
 		<script type="importmap">
