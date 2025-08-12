@@ -132,97 +132,97 @@
 			function createPenguin(penguinColor) {
 				const penguinGroup = new THREE.Group();
 				
-				// body (black) - 2.5x bigger
-				const bodyGeometry = new THREE.CapsuleGeometry(0.75, 2.0, 4, 8);
+				// body (black) - 5x bigger
+				const bodyGeometry = new THREE.CapsuleGeometry(1.5, 4.0, 4, 8);
 				const bodyMaterial = new THREE.MeshLambertMaterial({ color: 0x1a1a1a });
 				const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
 				body.castShadow = true;
 				body.receiveShadow = true;
 				penguinGroup.add(body);
 				
-				// belly (white) - 2.5x bigger
-				const bellyGeometry = new THREE.CapsuleGeometry(0.625, 1.5, 4, 8);
+				// belly (white) - 5x bigger
+				const bellyGeometry = new THREE.CapsuleGeometry(1.25, 3.0, 4, 8);
 				const bellyMaterial = new THREE.MeshLambertMaterial({ color: 0xffffff });
 				const belly = new THREE.Mesh(bellyGeometry, bellyMaterial);
-				belly.position.z = 0.25;
+				belly.position.z = 0.5;
 				belly.castShadow = true;
 				belly.receiveShadow = true;
 				penguinGroup.add(belly);
 				
-				// head (black) - 2.5x bigger
-				const headGeometry = new THREE.SphereGeometry(0.625, 8, 8);
+				// head (black) - 5x bigger
+				const headGeometry = new THREE.SphereGeometry(1.25, 8, 8);
 				const headMaterial = new THREE.MeshLambertMaterial({ color: 0x1a1a1a });
 				const head = new THREE.Mesh(headGeometry, headMaterial);
-				head.position.y = 1.5;
+				head.position.y = 3.0;
 				head.castShadow = true;
 				head.receiveShadow = true;
 				penguinGroup.add(head);
 				
-				// eyes (white) - 2.5x bigger
-				const eyeGeometry = new THREE.SphereGeometry(0.075, 4, 4);
+				// eyes (white) - 5x bigger
+				const eyeGeometry = new THREE.SphereGeometry(0.15, 4, 4);
 				const eyeMaterial = new THREE.MeshLambertMaterial({ color: 0xffffff });
 				const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
-				leftEye.position.set(-0.2, 1.625, 0.5);
+				leftEye.position.set(-0.4, 3.25, 1.0);
 				penguinGroup.add(leftEye);
 				const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
-				rightEye.position.set(0.2, 1.625, 0.5);
+				rightEye.position.set(0.4, 3.25, 1.0);
 				penguinGroup.add(rightEye);
 				
-				// pupils (black) - 2.5x bigger
-				const pupilGeometry = new THREE.SphereGeometry(0.0375, 4, 4);
+				// pupils (black) - 5x bigger
+				const pupilGeometry = new THREE.SphereGeometry(0.075, 4, 4);
 				const pupilMaterial = new THREE.MeshLambertMaterial({ color: 0x000000 });
 				const leftPupil = new THREE.Mesh(pupilGeometry, pupilMaterial);
-				leftPupil.position.set(-0.2, 1.625, 0.55);
+				leftPupil.position.set(-0.4, 3.25, 1.1);
 				penguinGroup.add(leftPupil);
 				const rightPupil = new THREE.Mesh(pupilGeometry, pupilMaterial);
-				rightPupil.position.set(0.2, 1.625, 0.55);
+				rightPupil.position.set(0.4, 3.25, 1.1);
 				penguinGroup.add(rightPupil);
 				
-				// beak (orange) - 2.5x bigger
-				const beakGeometry = new THREE.ConeGeometry(0.075, 0.2, 4);
+				// beak (orange) - 5x bigger
+				const beakGeometry = new THREE.ConeGeometry(0.15, 0.4, 4);
 				const beakMaterial = new THREE.MeshLambertMaterial({ color: 0xff6600 });
 				const beak = new THREE.Mesh(beakGeometry, beakMaterial);
-				beak.position.set(0, 1.375, 0.625);
+				beak.position.set(0, 2.75, 1.25);
 				beak.rotation.x = Math.PI / 2;
 				penguinGroup.add(beak);
 				
-				// wings (black) - 2.5x bigger
-				const wingGeometry = new THREE.CapsuleGeometry(0.125, 1.0, 4, 4);
+				// wings (black) - 5x bigger
+				const wingGeometry = new THREE.CapsuleGeometry(0.25, 2.0, 4, 4);
 				const wingMaterial = new THREE.MeshLambertMaterial({ color: 0x1a1a1a });
 				const leftWing = new THREE.Mesh(wingGeometry, wingMaterial);
-				leftWing.position.set(-0.875, 0.5, 0);
+				leftWing.position.set(-1.75, 1.0, 0);
 				leftWing.rotation.z = Math.PI / 2;
 				leftWing.castShadow = true;
 				leftWing.receiveShadow = true;
 				penguinGroup.add(leftWing);
 				const rightWing = new THREE.Mesh(wingGeometry, wingMaterial);
-				rightWing.position.set(0.875, 0.5, 0);
+				rightWing.position.set(1.75, 1.0, 0);
 				rightWing.rotation.z = -Math.PI / 2;
 				rightWing.castShadow = true;
 				rightWing.receiveShadow = true;
 				penguinGroup.add(rightWing);
 				
-				// feet (orange) - 2.5x bigger
-				const footGeometry = new THREE.CapsuleGeometry(0.1, 0.375, 4, 4);
+				// feet (orange) - 5x bigger
+				const footGeometry = new THREE.CapsuleGeometry(0.2, 0.75, 4, 4);
 				const footMaterial = new THREE.MeshLambertMaterial({ color: 0xff6600 });
 				const leftFoot = new THREE.Mesh(footGeometry, footMaterial);
-				leftFoot.position.set(-0.375, -1.0, 0);
+				leftFoot.position.set(-0.75, -2.0, 0);
 				leftFoot.rotation.x = Math.PI / 2;
 				leftFoot.castShadow = true;
 				leftFoot.receiveShadow = true;
 				penguinGroup.add(leftFoot);
 				const rightFoot = new THREE.Mesh(footGeometry, footMaterial);
-				rightFoot.position.set(0.375, -1.0, 0);
+				rightFoot.position.set(0.75, -2.0, 0);
 				rightFoot.rotation.x = Math.PI / 2;
 				rightFoot.castShadow = true;
 				rightFoot.receiveShadow = true;
 				penguinGroup.add(rightFoot);
 				
-				// add colored hat to distinguish players - 2.5x bigger
-				const hatGeometry = new THREE.ConeGeometry(0.5, 0.75, 8);
+				// add colored hat to distinguish players - 5x bigger
+				const hatGeometry = new THREE.ConeGeometry(1.0, 1.5, 8);
 				const hatMaterial = new THREE.MeshLambertMaterial({ color: penguinColor });
 				const hat = new THREE.Mesh(hatGeometry, hatMaterial);
-				hat.position.y = 2.25;
+				hat.position.y = 4.5;
 				hat.castShadow = true;
 				hat.receiveShadow = true;
 				penguinGroup.add(hat);
