@@ -541,6 +541,14 @@
 							const distance = ball.mesh.position.distanceTo(player.position);
 							if (distance < 0.5) { // collision radius
 								console.log(`ball hit player ${playerId}! distance: ${distance}`);
+								
+								// calculate push force (similar to playerSphereCollision)
+								const normal = new THREE.Vector3().subVectors(player.position, ball.mesh.position).normalize();
+								const pushForce = 8; // how much the ball pushes the player
+								
+								// apply push force to player velocity
+								player.velocity.add(normal.multiplyScalar(pushForce));
+								
 								// apply damage
 								damagePlayer(playerId);
 								
