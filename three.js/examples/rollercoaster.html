@@ -73,6 +73,16 @@
 				justify-content: center;
 				align-items: center;
 				z-index: 10000;
+				opacity: 0;
+				transition: opacity 0.5s ease-in-out;
+			}
+			
+			.modal-overlay.show {
+				opacity: 1;
+			}
+			
+			.modal-overlay.hide {
+				opacity: 0;
 			}
 			
 			.modal-content {
@@ -85,6 +95,19 @@
 				text-align: center;
 				box-shadow: 0 8px 0 #000, inset 0 3px 0 rgba(255, 255, 255, 0.7);
 				image-rendering: pixelated;
+				transform: scale(0.5) rotateY(90deg);
+				opacity: 0;
+				transition: all 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+			}
+			
+			.modal-content.show {
+				transform: scale(1) rotateY(0deg);
+				opacity: 1;
+			}
+			
+			.modal-content.hide {
+				transform: scale(0.5) rotateY(-90deg);
+				opacity: 0;
 			}
 			
 			.modal-title {
@@ -155,7 +178,18 @@
 			function showModal(title, text) {
 				document.getElementById('modalTitle').textContent = title;
 				document.getElementById('modalText').textContent = text;
-				document.getElementById('modalOverlay').style.display = 'flex';
+				
+				const overlay = document.getElementById('modalOverlay');
+				const content = document.getElementById('modalContent');
+				
+				overlay.style.display = 'flex';
+				
+				// Trigger entrance animation
+				setTimeout(() => {
+					overlay.classList.add('show');
+					content.classList.add('show');
+				}, 10);
+				
 				window.isModalOpen = true;
 				velocity = window.slowVelocity; // Slow down the rollercoaster
 			}
@@ -163,7 +197,23 @@
 			// Close modal
 			function closeModal() {
 				playButtonSound(); // Play sound when closing modal
-				document.getElementById('modalOverlay').style.display = 'none';
+				
+				const overlay = document.getElementById('modalOverlay');
+				const content = document.getElementById('modalContent');
+				
+				// Trigger exit animation
+				overlay.classList.remove('show');
+				overlay.classList.add('hide');
+				content.classList.remove('show');
+				content.classList.add('hide');
+				
+				// Hide overlay after animation completes
+				setTimeout(() => {
+					overlay.style.display = 'none';
+					overlay.classList.remove('hide');
+					content.classList.remove('hide');
+				}, 600);
+				
 				window.isModalOpen = false;
 				velocity = window.normalVelocity; // Resume normal speed
 				window.currentModalIndex++;
@@ -221,8 +271,8 @@
 		
 		<!-- Modal overlay -->
 		<div class="modal-overlay" id="modalOverlay">
-			<div class="modal-content">
-				<div class="modal-title" id="modalTitle">ABSTRACT ROADMAP</div>
+			<div class="modal-content" id="modalContent">
+				<div class="modal-title" id="modalTitle">ABSTRACT PARTY ROADMAP</div>
 				<div class="modal-text" id="modalText">Welcome to the future of the metaverse...</div>
 				<button class="modal-button" id="modalAcceptButton">ACCEPT</button>
 			</div>
@@ -272,20 +322,20 @@
 			// Roadmap modals data - moved to global scope
 			window.roadmapModals = [
 				{
-					title: "ABSTRACT TOKEN",
-					text: "Welcome to ABSTRACT, a revolutionary token on Abstract MoonShot. We know it's not perfect, but we want to show you the potential we have to create something extraordinary."
+					title: "ABSTRACT PARTY $PARTY",
+					text: "Welcome to ABSTRACT PARTY $PARTY, a revolutionary token on Abstract MoonShot. We know it's not perfect, but we want to show you the potential we have to create something extraordinary."
 				},
 				{
 					title: "AUTHENTIC METAVERSE",
-					text: "Our goal is to create the most authentic ABSTRACT metaverse, inspired by GTA V Role Play style, where each player will have their own profession and can trade within the game."
+					text: "Our goal is to create the most authentic ABSTRACT PARTY metaverse, inspired by GTA V Role Play style, where each player will have their own profession and can trade within the game."
 				},
 				{
 					title: "PROFESSIONS & TRADING",
-					text: "Each player can choose their profession: police officer, doctor, merchant, constructor, etc. All transactions will be made with ABSTRACT tokens within the metaverse."
+					text: "Each player can choose their profession: police officer, doctor, merchant, constructor, etc. All transactions will be made with $PARTY tokens within the metaverse."
 				},
 				{
 					title: "VIRTUAL ECONOMY",
-					text: "We will create a complete virtual economy where players can buy properties, vehicles, businesses and more, all using ABSTRACT tokens."
+					text: "We will create a complete virtual economy where players can buy properties, vehicles, businesses and more, all using $PARTY tokens."
 				},
 				{
 					title: "COMMUNITY & DEVELOPMENT",
