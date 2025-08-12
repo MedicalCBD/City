@@ -89,20 +89,20 @@
 			
 			.modal-title {
 				font-family: 'Courier New', monospace;
-				font-size: 24px;
+				font-size: 32px;
 				font-weight: bold;
 				color: #fff;
-				margin-bottom: 20px;
+				margin-bottom: 25px;
 				text-shadow: 2px 2px 0 #000;
 				text-transform: uppercase;
 			}
 			
 			.modal-text {
 				font-family: 'Courier New', monospace;
-				font-size: 16px;
+				font-size: 20px;
 				color: #fff;
 				line-height: 1.6;
-				margin-bottom: 25px;
+				margin-bottom: 30px;
 				text-shadow: 1px 1px 0 #000;
 			}
 			
@@ -162,6 +162,7 @@
 			
 			// Close modal
 			function closeModal() {
+				playButtonSound(); // Play sound when closing modal
 				document.getElementById('modalOverlay').style.display = 'none';
 				window.isModalOpen = false;
 				velocity = window.normalVelocity; // Resume normal speed
@@ -200,6 +201,15 @@
 						}, 1500);
 					});
 				});
+				
+				// Add click handler for modal accept button
+				const modalAcceptButton = document.getElementById('modalAcceptButton');
+				if (modalAcceptButton) {
+					modalAcceptButton.addEventListener('click', function(e) {
+						e.preventDefault();
+						closeModal();
+					});
+				}
 			});
 		</script>
 	</head>
@@ -213,8 +223,8 @@
 		<div class="modal-overlay" id="modalOverlay">
 			<div class="modal-content">
 				<div class="modal-title" id="modalTitle">ABSTRACT ROADMAP</div>
-				<div class="modal-text" id="modalText">Bienvenido al futuro del metaverso...</div>
-				<button class="modal-button" onclick="closeModal()">ACEPTAR</button>
+				<div class="modal-text" id="modalText">Welcome to the future of the metaverse...</div>
+				<button class="modal-button" id="modalAcceptButton">ACCEPT</button>
 			</div>
 		</div>
 		
@@ -250,7 +260,7 @@
 
 			// Initialize animation variables
 			let velocity = 0.0001; // Start with normal velocity
-			let progress = 0;
+			window.progress = 0; // Move to global scope
 			let prevTime = performance.now();
 			
 			// Modal system variables - moved to global scope
@@ -263,23 +273,23 @@
 			window.roadmapModals = [
 				{
 					title: "ABSTRACT TOKEN",
-					text: "Bienvenido a ABSTRACT, un token revolucionario en Abstract MoonShot. Sabemos que no es perfecto, pero queremos mostraros el potencial que tenemos para crear algo extraordinario."
+					text: "Welcome to ABSTRACT, a revolutionary token on Abstract MoonShot. We know it's not perfect, but we want to show you the potential we have to create something extraordinary."
 				},
 				{
-					title: "METAVERSO AUTÉNTICO",
-					text: "Nuestro objetivo es crear el metaverso más auténtico de ABSTRACT, inspirado en el estilo GTA V Role Play, donde cada jugador tendrá su propia profesión y podrá hacer trading dentro del juego."
+					title: "AUTHENTIC METAVERSE",
+					text: "Our goal is to create the most authentic ABSTRACT metaverse, inspired by GTA V Role Play style, where each player will have their own profession and can trade within the game."
 				},
 				{
-					title: "PROFESIONES Y TRADING",
-					text: "Cada jugador podrá elegir su profesión: policía, médico, comerciante, constructor, etc. Todas las transacciones se realizarán con tokens ABSTRACT dentro del metaverso."
+					title: "PROFESSIONS & TRADING",
+					text: "Each player can choose their profession: police officer, doctor, merchant, constructor, etc. All transactions will be made with ABSTRACT tokens within the metaverse."
 				},
 				{
-					title: "ECONOMÍA VIRTUAL",
-					text: "Crearemos una economía virtual completa donde los jugadores pueden comprar propiedades, vehículos, negocios y más, todo usando tokens ABSTRACT."
+					title: "VIRTUAL ECONOMY",
+					text: "We will create a complete virtual economy where players can buy properties, vehicles, businesses and more, all using ABSTRACT tokens."
 				},
 				{
-					title: "COMUNIDAD Y DESARROLLO",
-					text: "Este es solo el comienzo. Con el apoyo de nuestra comunidad, construiremos juntos el metaverso más innovador y auténtico del mundo crypto."
+					title: "COMMUNITY & DEVELOPMENT",
+					text: "This is just the beginning. With the support of our community, we will build together the most innovative and authentic metaverse in the crypto world."
 				}
 			];
 			
@@ -481,10 +491,10 @@
 
 				//
 
-				progress += velocity;
-				progress = progress % 1;
+				window.progress += velocity;
+				window.progress = window.progress % 1;
 
-				position.copy( curve.getPointAt( progress ) );
+				position.copy( curve.getPointAt( window.progress ) );
 				position.y += 0.3;
 
 				train.position.copy( position );
