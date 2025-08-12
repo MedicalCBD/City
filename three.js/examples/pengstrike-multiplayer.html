@@ -212,7 +212,7 @@
 			
 			// ball geometry for multiplayer balls
 			const ballGeometry = new THREE.IcosahedronGeometry( 0.2, 5 );
-			const ballMaterial = new THREE.MeshLambertMaterial( { color: 0xff0000 } );
+			const ballMaterial = new THREE.MeshLambertMaterial( { color: 0x00ff00 } ); // green for multiplayer balls
 
 			const GRAVITY = 30;
 			const NUM_SPHERES = 100;
@@ -220,7 +220,7 @@
 			const STEPS_PER_FRAME = 5;
 
 			const sphereGeometry = new THREE.IcosahedronGeometry( SPHERE_RADIUS, 5 );
-			const sphereMaterial = new THREE.MeshLambertMaterial( { color: 0xdede8d } );
+			const sphereMaterial = new THREE.MeshLambertMaterial( { color: 0xffffff } ); // white for player balls
 
 			const spheres = [];
 			let sphereIdx = 0;
@@ -359,7 +359,10 @@
 				const player = otherPlayers.get(id);
 				if (player) {
 					player.position.set(position.x, position.y, position.z);
+					// fix penguin orientation - make it face the direction it's looking
 					player.rotation.set(rotation.x, rotation.y, rotation.z);
+					// rotate the penguin 180 degrees so the front (beak) faces forward
+					player.mesh.rotation.y = rotation.y + Math.PI;
 					player.velocity.set(velocity.x, velocity.y, velocity.z);
 					player.onFloor = onFloor;
 				}
@@ -406,7 +409,9 @@
 					try {
 						// smoother interpolation for other players
 						player.mesh.position.lerp(player.position, 0.05);
-						player.mesh.rotation.lerp(player.rotation, 0.05);
+						// use the corrected rotation for penguin orientation
+						const targetRotation = new THREE.Euler(player.rotation.x, player.rotation.y + Math.PI, player.rotation.z);
+						player.mesh.rotation.lerp(targetRotation, 0.05);
 					} catch (error) {
 						console.error('error updating player:', error);
 					}
