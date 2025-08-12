@@ -177,19 +177,25 @@
 				buttons.forEach(button => {
 					button.addEventListener('click', function(e) {
 						e.preventDefault();
+						e.stopPropagation();
+						
 						playButtonSound();
-						showLoading();
 						
-						// Store the original onclick
-						const originalOnClick = button.getAttribute('onclick');
+						const url = button.getAttribute('data-url');
+						const isExternal = button.getAttribute('data-external') === 'true';
 						
-						// Delay navigation by 2.5 seconds
-						setTimeout(() => {
-							if (originalOnClick) {
-								// Execute the original onclick
-								eval(originalOnClick);
-							}
-						}, 2500);
+						if (isExternal) {
+							// For external links, open immediately after sound
+							setTimeout(() => {
+								window.open(url, '_blank');
+							}, 500);
+						} else {
+							// For internal links, show loading and delay
+							showLoading();
+							setTimeout(() => {
+								window.location.href = url;
+							}, 1500);
+						}
 					});
 				});
 			});
@@ -202,11 +208,11 @@
 		</div>
 
 		<div class="button-container">
-			<button class="nav-button rollercoaster" onclick="window.location.href='rollercoaster.html'">roadmap</button>
-			<button class="nav-button pengstrike" onclick="window.location.href='pengstrike-multiplayer.html'">go to pengstrike</button>
-			<button class="nav-button climbandwin" onclick="window.location.href='climbandwin-multiplayer.html'">climb and win</button>
-			<button class="nav-button twitter" onclick="window.open('https://twitter.com', '_blank')">twitter</button>
-			<button class="nav-button telegram" onclick="window.open('https://telegram.org', '_blank')">telegram</button>
+			<button class="nav-button rollercoaster" data-url="rollercoaster.html">roadmap</button>
+			<button class="nav-button pengstrike" data-url="pengstrike-multiplayer.html">go to pengstrike</button>
+			<button class="nav-button climbandwin" data-url="climbandwin-multiplayer.html">climb and win</button>
+			<button class="nav-button twitter" data-url="https://twitter.com" data-external="true">twitter</button>
+			<button class="nav-button telegram" data-url="https://telegram.org" data-external="true">telegram</button>
 		</div>
 
 		<script type="importmap">
