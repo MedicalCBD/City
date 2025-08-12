@@ -361,6 +361,14 @@
 							
 						case 'playerDamaged':
 							if (data.playerId && data.playerId !== playerId) {
+								// apply damage and push force from server
+								const player = otherPlayers.get(data.playerId);
+								if (player && data.ballPosition) {
+									// calculate push force
+									const normal = new THREE.Vector3().subVectors(player.position, new THREE.Vector3(data.ballPosition.x, data.ballPosition.y, data.ballPosition.z)).normalize();
+									const pushForce = 8;
+									player.velocity.add(normal.multiplyScalar(pushForce));
+								}
 								damagePlayer(data.playerId);
 							}
 							break;
@@ -497,16 +505,11 @@
 					
 					console.log(`player ${playerId} respawned at spawn point!`);
 					
-					// send respawn message to server with spawn position
+					// send respawn message to server
 					if (ws && ws.readyState === WebSocket.OPEN) {
 						ws.send(JSON.stringify({
-							type: 'respawn',
-							playerId: playerId,
-							position: {
-								x: SPAWN_POINT.x,
-								y: SPAWN_POINT.y,
-								z: SPAWN_POINT.z
-							}
+							type: 'playerDied',
+							playerId: playerId
 						}));
 					}
 				}
@@ -542,17 +545,21 @@
 							if (distance < 0.5) { // collision radius
 								console.log(`ball hit player ${playerId}! distance: ${distance}`);
 								
-								// calculate push force (similar to playerSphereCollision)
-								const normal = new THREE.Vector3().subVectors(player.position, ball.mesh.position).normalize();
-								const pushForce = 8; // how much the ball pushes the player
+								// send damage message to server
+								if (ws && ws.readyState === WebSocket.OPEN) {
+									ws.send(JSON.stringify({
+										type: 'damagePlayer',
+										targetPlayerId: playerId,
+										ballId: id,
+										position: {
+											x: ball.mesh.position.x,
+											y: ball.mesh.position.y,
+											z: ball.mesh.position.z
+										}
+									}));
+								}
 								
-								// apply push force to player velocity
-								player.velocity.add(normal.multiplyScalar(pushForce));
-								
-								// apply damage
-								damagePlayer(playerId);
-								
-								// remove the ball
+								// remove the ball locally
 								scene.remove(ball.mesh);
 								multiplayerBalls.delete(id);
 							}
