@@ -156,24 +156,24 @@
 				document.getElementById('modalTitle').textContent = title;
 				document.getElementById('modalText').textContent = text;
 				document.getElementById('modalOverlay').style.display = 'flex';
-				isModalOpen = true;
-				velocity = slowVelocity; // Slow down the rollercoaster
+				window.isModalOpen = true;
+				velocity = window.slowVelocity; // Slow down the rollercoaster
 			}
 			
 			// Close modal
 			function closeModal() {
 				document.getElementById('modalOverlay').style.display = 'none';
-				isModalOpen = false;
-				velocity = normalVelocity; // Resume normal speed
-				currentModalIndex++;
+				window.isModalOpen = false;
+				velocity = window.normalVelocity; // Resume normal speed
+				window.currentModalIndex++;
 			}
 			
 			// Check if modal should be triggered
 			function checkModalTrigger() {
-				if (currentModalIndex < modalTriggers.length && !isModalOpen) {
-					const triggerPoint = modalTriggers[currentModalIndex];
+				if (window.currentModalIndex < window.modalTriggers.length && !window.isModalOpen) {
+					const triggerPoint = window.modalTriggers[window.currentModalIndex];
 					if (progress >= triggerPoint && progress < triggerPoint + 0.01) {
-						const modal = roadmapModals[currentModalIndex];
+						const modal = window.roadmapModals[window.currentModalIndex];
 						showModal(modal.title, modal.text);
 					}
 				}
@@ -253,14 +253,14 @@
 			let progress = 0;
 			let prevTime = performance.now();
 			
-			// Modal system variables
-			let isModalOpen = false;
-			let currentModalIndex = 0;
-			let normalVelocity = 0.0001;
-			let slowVelocity = 0.00001;
+			// Modal system variables - moved to global scope
+			window.isModalOpen = false;
+			window.currentModalIndex = 0;
+			window.normalVelocity = 0.0001;
+			window.slowVelocity = 0.00001;
 			
-			// Roadmap modals data
-			const roadmapModals = [
+			// Roadmap modals data - moved to global scope
+			window.roadmapModals = [
 				{
 					title: "ABSTRACT TOKEN",
 					text: "Bienvenido a ABSTRACT, un token revolucionario en Abstract MoonShot. Sabemos que no es perfecto, pero queremos mostraros el potencial que tenemos para crear algo extraordinario."
@@ -283,8 +283,8 @@
 				}
 			];
 			
-			// Modal trigger points (progress values where modals should appear)
-			const modalTriggers = [0.1, 0.25, 0.4, 0.6, 0.8];
+			// Modal trigger points (progress values where modals should appear) - moved to global scope
+			window.modalTriggers = [0.1, 0.25, 0.4, 0.6, 0.8];
 			
 			// Initialize vectors for animation
 			const position = new THREE.Vector3();
@@ -492,7 +492,7 @@
 				tangent.copy( curve.getTangentAt( progress ) );
 
 				// Only apply gravity when no modal is open
-				if (!isModalOpen) {
+				if (!window.isModalOpen) {
 					velocity -= tangent.y * 0.0000001 * delta;
 					velocity = Math.max( 0.00004, Math.min( 0.0002, velocity ) );
 				}
