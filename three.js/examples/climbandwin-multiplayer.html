@@ -234,11 +234,17 @@
 			function connectWebSocket() {
 				const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
 				const host = window.location.hostname;
-				const port = '8081'; // climbandwin server port
-				ws = new WebSocket(`${protocol}//${host}:${port}`);
+				const port = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? '8081' : '';
+				const wsUrl = port ? `${protocol}//${host}:${port}` : `${protocol}//${host}`;
+				ws = new WebSocket(wsUrl);
 				
 				ws.onopen = () => {
 					updateConnectionStatus('connected', true);
+					// send game type to server
+					ws.send(JSON.stringify({
+						type: 'gameType',
+						gameType: 'climbandwin'
+					}));
 				};
 				
 				ws.onclose = () => {

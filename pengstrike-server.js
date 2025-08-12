@@ -5,78 +5,104 @@ const fs = require('fs');
 const server = http.createServer();
 const wss = new WebSocket.Server({ server });
 
-const players = new Map();
-const balls = [];
+// pengstrike game state
+const pengstrikePlayers = new Map();
+const pengstrikeBalls = [];
 const BALL_LIFETIME = 10000; // 10 seconds
+
+// climbandwin game state
+const climbandwinPlayers = new Map();
+const climbandwinColors = [
+    '#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff',
+    '#ff8800', '#8800ff', '#00ff88', '#ff0088', '#88ff00', '#0088ff'
+];
+let colorIndex = 0;
 
 wss.on('connection', (ws) => {
     const playerId = generateId();
-    const player = {
-        id: playerId,
-        position: { x: 0, y: 1, z: 0 },
-        rotation: { x: 0, y: 0, z: 0 },
-        velocity: { x: 0, y: 0, z: 0 },
-        onFloor: false
-    };
+    let gameType = 'pengstrike'; // default game
+    let playerColor = null;
     
-    players.set(playerId, player);
-    
-    // send current players to new player
-    const currentPlayers = Array.from(players.values()).filter(p => p.id !== playerId);
-    ws.send(JSON.stringify({
-        type: 'init',
-        playerId: playerId,
-        players: currentPlayers,
-        balls: balls
-    }));
-    
-    // notify other players about new player
-    broadcastToOthers(ws, {
-        type: 'playerJoined',
-        player: player
-    });
-    
-    console.log(`player ${playerId} connected. total players: ${players.size}`);
+    // determine game type from URL or other means
+    // for now, we'll use a simple approach based on connection timing
     
     ws.on('message', (message) => {
         try {
             const data = JSON.parse(message);
             
-            switch (data.type) {
-                case 'updatePosition':
-                    updatePlayerPosition(playerId, data.position, data.rotation, data.velocity, data.onFloor);
-                    broadcastToOthers(ws, {
-                        type: 'playerUpdate',
-                        playerId: playerId,
-                        position: data.position,
-                        rotation: data.rotation,
-                        velocity: data.velocity,
-                        onFloor: data.onFloor
-                    });
-                    break;
+            // handle game type selection
+            if (data.type === 'gameType') {
+                gameType = data.gameType;
+                
+                if (gameType === 'climbandwin') {
+                    // assign color for climbandwin
+                    playerColor = climbandwinColors[colorIndex % climbandwinColors.length];
+                    colorIndex++;
                     
-                case 'throwBall':
-                    const ball = {
-                        id: generateId(),
-                        position: data.position,
-                        velocity: data.velocity,
-                        timestamp: Date.now()
+                    const player = {
+                        id: playerId,
+                        position: { x: 0, y: 1, z: 0 },
+                        rotation: { x: 0, y: 0, z: 0 },
+                        velocity: { x: 0, y: 0, z: 0 },
+                        onFloor: false,
+                        color: playerColor
                     };
-                    balls.push(ball);
                     
-                    // remove ball after lifetime
-                    setTimeout(() => {
-                        const index = balls.findIndex(b => b.id === ball.id);
-                        if (index !== -1) {
-                            balls.splice(index, 1);
-                        }
-                    }, BALL_LIFETIME);
+                    climbandwinPlayers.set(playerId, player);
                     
-                    broadcastToAll({
-                        type: 'ballThrown',
-                        ball: ball
+                    // send current climbandwin players to new player
+                    const currentPlayers = Array.from(climbandwinPlayers.values()).filter(p => p.id !== playerId);
+                    ws.send(JSON.stringify({
+                        type: 'init',
+                        playerId: playerId,
+                        playerColor: playerColor,
+                        players: currentPlayers
+                    }));
+                    
+                    // notify other climbandwin players about new player
+                    broadcastToOthers(ws, {
+                        type: 'playerJoined',
+                        player: player
                     });
-                    break;
+                    
+                    console.log(`climbandwin player ${playerId} connected. total players: ${climbandwinPlayers.size}`);
+                } else {
+                    // pengstrike game
+                    const player = {
+                        id: playerId,
+                        position: { x: 0, y: 1, z: 0 },
+                        rotation: { x: 0, y: 0, z: 0 },
+                        velocity: { x: 0, y: 0, z: 0 },
+                        onFloor: false
+                    };
+                    
+                    pengstrikePlayers.set(playerId, player);
+                    
+                    // send current pengstrike players to new player
+                    const currentPlayers = Array.from(pengstrikePlayers.values()).filter(p => p.id !== playerId);
+                    ws.send(JSON.stringify({
+                        type: 'init',
+                        playerId: playerId,
+                        players: currentPlayers,
+                        balls: pengstrikeBalls
+                    }));
+                    
+                    // notify other pengstrike players about new player
+                    broadcastToOthers(ws, {
+                        type: 'playerJoined',
+                        player: player
+                    });
+                    
+                    console.log(`pengstrike player ${playerId} connected. total players: ${pengstrikePlayers.size}`);
+                }
+                return;
+            }
+            
+            // handle game-specific messages
+            if (gameType === 'climbandwin') {
+                handleClimbandwinMessage(ws, playerId, data);
+            } else {
+                handlePengstrikeMessage(ws, playerId, data);
             }
         } catch (error) {
             console.error('error parsing message:', error);
@@ -84,23 +110,27 @@ wss.on('connection', (ws) => {
     });
     
     ws.on('close', () => {
-        players.delete(playerId);
-        broadcastToAll({
-            type: 'playerLeft',
-            playerId: playerId
-        });
-        console.log(`player ${playerId} disconnected. total players: ${players.size}`);
+        if (gameType === 'climbandwin') {
+            climbandwinPlayers.delete(playerId);
+            broadcastToAll({
+                type: 'playerLeft',
+                playerId: playerId
+            });
+            console.log(`climbandwin player ${playerId} disconnected. total players: ${climbandwinPlayers.size}`);
+        } else {
+            pengstrikePlayers.delete(playerId);
+            broadcastToAll({
+                type: 'playerLeft',
+                playerId: playerId
+            });
+            console.log(`pengstrike player ${playerId} disconnected. total players: ${pengstrikePlayers.size}`);
+        }
     });
 });
 
 function updatePlayerPosition(playerId, position, rotation, velocity, onFloor) {
-    const player = players.get(playerId);
-    if (player) {
-        player.position = position;
-        player.rotation = rotation;
-        player.velocity = velocity;
-        player.onFloor = onFloor;
-    }
+    // this function is kept for backward compatibility but not used
+    // the new functions are updatePengstrikePlayerPosition and updateClimbandwinPlayerPosition
 }
 
 function broadcastToAll(message) {
@@ -121,6 +151,81 @@ function broadcastToOthers(excludeWs, message) {
 
 function generateId() {
     return Math.random().toString(36).substr(2, 9);
+}
+
+function handlePengstrikeMessage(ws, playerId, data) {
+    switch (data.type) {
+        case 'updatePosition':
+            updatePengstrikePlayerPosition(playerId, data.position, data.rotation, data.velocity, data.onFloor);
+            broadcastToOthers(ws, {
+                type: 'playerUpdate',
+                playerId: playerId,
+                position: data.position,
+                rotation: data.rotation,
+                velocity: data.velocity,
+                onFloor: data.onFloor
+            });
+            break;
+            
+        case 'throwBall':
+            const ball = {
+                id: generateId(),
+                position: data.position,
+                velocity: data.velocity,
+                timestamp: Date.now()
+            };
+            pengstrikeBalls.push(ball);
+            
+            // remove ball after lifetime
+            setTimeout(() => {
+                const index = pengstrikeBalls.findIndex(b => b.id === ball.id);
+                if (index !== -1) {
+                    pengstrikeBalls.splice(index, 1);
+                }
+            }, BALL_LIFETIME);
+            
+            broadcastToAll({
+                type: 'ballThrown',
+                ball: ball
+            });
+            break;
+    }
+}
+
+function handleClimbandwinMessage(ws, playerId, data) {
+    switch (data.type) {
+        case 'updatePosition':
+            updateClimbandwinPlayerPosition(playerId, data.position, data.rotation, data.velocity, data.onFloor);
+            broadcastToOthers(ws, {
+                type: 'playerUpdate',
+                playerId: playerId,
+                position: data.position,
+                rotation: data.rotation,
+                velocity: data.velocity,
+                onFloor: data.onFloor
+            });
+            break;
+    }
+}
+
+function updatePengstrikePlayerPosition(playerId, position, rotation, velocity, onFloor) {
+    const player = pengstrikePlayers.get(playerId);
+    if (player) {
+        player.position = position;
+        player.rotation = rotation;
+        player.velocity = velocity;
+        player.onFloor = onFloor;
+    }
+}
+
+function updateClimbandwinPlayerPosition(playerId, position, rotation, velocity, onFloor) {
+    const player = climbandwinPlayers.get(playerId);
+    if (player) {
+        player.position = position;
+        player.rotation = rotation;
+        player.velocity = velocity;
+        player.onFloor = onFloor;
+    }
 }
 
 // serve static files
