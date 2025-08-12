@@ -5,7 +5,8 @@
   "main": "pengstrike-server.js",
   "scripts": {
     "start": "node pengstrike-server.js",
-    "dev": "nodemon pengstrike-server.js"
+    "dev": "nodemon pengstrike-server.js",
+    "climbandwin": "node climbandwin-server.js"
   },
   "dependencies": {
     "ws": "^8.14.2"
