@@ -161,19 +161,9 @@
 			// Arcade button sound function
 			function playButtonSound() {
 				const audio = document.getElementById('arcadeSound');
-				if (!audio) {
-					console.error('Audio element not found');
-					return;
-				}
 				audio.currentTime = 0;
 				audio.volume = 0.5;
-				audio.play().catch(e => {
-					console.error('Audio play failed:', e);
-					// Try alternative approach
-					const audio2 = new Audio('../../button.mp3');
-					audio2.volume = 0.5;
-					audio2.play().catch(e2 => console.error('Alternative audio also failed:', e2));
-				});
+				audio.play().catch(e => console.log('Audio play failed:', e));
 			}
 			
 			// Show loading overlay
