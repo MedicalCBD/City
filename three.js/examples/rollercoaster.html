@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>three.js vr - roller coaster</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+		<link type="text/css" rel="stylesheet" href="main.css">
+		<style>
+			.nav-button {
+				position: fixed;
+				top: 20px;
+				right: 20px;
+				background: rgba(0, 0, 0, 0.7);
+				color: white;
+				border: none;
+				padding: 10px 15px;
+				border-radius: 5px;
+				cursor: pointer;
+				font-family: Arial, sans-serif;
+				font-size: 14px;
+				z-index: 1000;
+				transition: background 0.3s ease;
+			}
+			.nav-button:hover {
+				background: rgba(0, 0, 0, 0.9);
+			}
+		</style>
+	</head>
+	<body>
+		<button class="nav-button" onclick="window.location.href='city.html'">return to the city</button>
+
+		<script type="importmap">
+			{
+				"imports": {
+					"three": "../build/three.webgpu.js",
+					"three/webgpu": "../build/three.webgpu.js",
+					"three/addons/": "./jsm/"
+				}
+			}
+		</script>
+
+		<script type="module">
+
+			import * as THREE from 'three/webgpu';
+
+			import {
+				RollerCoasterGeometry,
+				RollerCoasterShadowGeometry,
+				RollerCoasterLiftersGeometry,
+				TreesGeometry,
+				SkyGeometry
+			} from 'three/addons/misc/RollerCoaster.js';
+
+			import { VRButton } from 'three/addons/webxr/VRButton.js';
+			import { FontLoader } from 'three/addons/loaders/FontLoader.js';
+			import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
+
+			let mesh, material, geometry;
+
+			// Initialize animation variables
+			let velocity = 0;
+			let progress = 0;
+			let prevTime = performance.now();
+			
+			// Initialize vectors for animation
+			const position = new THREE.Vector3();
+			const tangent = new THREE.Vector3();
+			const lookAt = new THREE.Vector3();
+
+			const renderer = new THREE.WebGPURenderer( { antialias: true, forceWebGL: true, colorBufferType: THREE.UnsignedByteType, multiview: false } );
+			renderer.setPixelRatio( window.devicePixelRatio );
+			renderer.setSize( window.innerWidth, window.innerHeight );
+			renderer.setAnimationLoop( animate );
+			renderer.xr.enabled = true;
+			renderer.xr.setReferenceSpaceType( 'local' );
+			document.body.appendChild( renderer.domElement );
+
+			document.body.appendChild( VRButton.createButton( renderer ) );
+
+			//
+
+			const scene = new THREE.Scene();
+			scene.background = new THREE.Color( 0xf0f0ff );
+
+			const light = new THREE.HemisphereLight( 0xfff0f0, 0x60606, 3 );
+			light.position.set( 1, 1, 1 );
+			scene.add( light );
+
+			const train = new THREE.Object3D();
+			scene.add( train );
+
+			const camera = new THREE.PerspectiveCamera( 50, window.innerWidth / window.innerHeight, 0.1, 500 );
+			train.add( camera );
+
+			// environment
+
+			geometry = new THREE.PlaneGeometry( 500, 500, 15, 15 );
+			geometry.rotateX( - Math.PI / 2 );
+
+			const positions = geometry.attributes.position.array;
+			const vertex = new THREE.Vector3();
+
+			for ( let i = 0; i < positions.length; i += 3 ) {
+
+				vertex.fromArray( positions, i );
+
+				vertex.x += Math.random() * 10 - 5;
+				vertex.z += Math.random() * 10 - 5;
+
+				const distance = ( vertex.distanceTo( scene.position ) / 5 ) - 25;
+				vertex.y = Math.random() * Math.max( 0, distance );
+
+				vertex.toArray( positions, i );
+
+			}
+
+			geometry.computeVertexNormals();
+
+			material = new THREE.MeshLambertMaterial( {
+				color: 0x407000
+			} );
+
+			mesh = new THREE.Mesh( geometry, material );
+			scene.add( mesh );
+
+			geometry = new TreesGeometry( mesh );
+			material = new THREE.MeshBasicMaterial( {
+				side: THREE.DoubleSide, vertexColors: true
+			} );
+			mesh = new THREE.Mesh( geometry, material );
+			scene.add( mesh );
+
+			geometry = new SkyGeometry();
+			material = new THREE.MeshBasicMaterial( { color: 0xffffff } );
+			mesh = new THREE.Mesh( geometry, material );
+			scene.add( mesh );
+
+			//
+
+			const PI2 = Math.PI * 2;
+
+			const curve = ( function () {
+
+				const vector = new THREE.Vector3();
+				const vector2 = new THREE.Vector3();
+
+				return {
+
+					getPointAt: function ( t ) {
+
+						t = t * PI2;
+
+						const x = Math.sin( t * 3 ) * Math.cos( t * 4 ) * 50;
+						const y = Math.sin( t * 10 ) * 2 + Math.cos( t * 17 ) * 2 + 5;
+						const z = Math.sin( t ) * Math.sin( t * 4 ) * 50;
+
+						return vector.set( x, y, z ).multiplyScalar( 2 );
+
+					},
+
+					getTangentAt: function ( t ) {
+
+						const delta = 0.0001;
+						const t1 = Math.max( 0, t - delta );
+						const t2 = Math.min( 1, t + delta );
+
+						return vector2.copy( this.getPointAt( t2 ) )
+							.sub( this.getPointAt( t1 ) ).normalize();
+
+					}
+
+				};
+
+			} )();
+
+			geometry = new RollerCoasterGeometry( curve, 1500 );
+			material = new THREE.MeshPhongMaterial( {
+				vertexColors: true
+			} );
+			mesh = new THREE.Mesh( geometry, material );
+			scene.add( mesh );
+
+			geometry = new RollerCoasterLiftersGeometry( curve, 100 );
+			material = new THREE.MeshPhongMaterial();
+			mesh = new THREE.Mesh( geometry, material );
+			mesh.position.y = 0.1;
+			scene.add( mesh );
+
+			geometry = new RollerCoasterShadowGeometry( curve, 500 );
+			material = new THREE.MeshBasicMaterial( {
+				color: 0x305000, depthWrite: false, transparent: true
+			} );
+			mesh = new THREE.Mesh( geometry, material );
+			mesh.position.y = 0.1;
+			scene.add( mesh );
+
+			const funfairs = [];
+
+			//
+
+			// Create floating ABSTRACT text that rotates
+			const treeGroup = new THREE.Group();
+			
+			// Load font and create 3D text
+			const loader = new FontLoader();
+			loader.load( 'https://threejs.org/examples/fonts/helvetiker_regular.typeface.json', function ( font ) {
+				
+				const textGeometry = new TextGeometry( 'ABSTRACT', {
+					font: font,
+					size: 2,
+					height: 0.1,
+					curveSegments: 8,
+					bevelEnabled: false
+				} );
+				
+				textGeometry.computeBoundingBox();
+				const textWidth = textGeometry.boundingBox.max.x - textGeometry.boundingBox.min.x;
+				
+				const textMaterial = new THREE.MeshLambertMaterial( { color: 0x228B22 } );
+				const textMesh = new THREE.Mesh( textGeometry, textMaterial );
+				
+				// Center the text above the trunk
+				textMesh.position.set( -textWidth / 2, 20, 0 );
+				treeGroup.add( textMesh );
+				
+			} );
+			
+			treeGroup.position.set( -80, 0, -70 );
+			scene.add( treeGroup );
+			funfairs.push( treeGroup );
+
+			//
+
+			window.addEventListener( 'resize', onWindowResize );
+
+			function onWindowResize() {
+
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+
+				renderer.setSize( window.innerWidth, window.innerHeight );
+
+			}
+
+			//
+
+			function animate() {
+
+				const time = performance.now();
+				const delta = time - prevTime;
+
+				for ( let i = 0; i < funfairs.length; i ++ ) {
+
+					funfairs[ i ].rotation.y = time * 0.0004;
+
+				}
+
+				//
+
+				progress += velocity;
+				progress = progress % 1;
+
+				position.copy( curve.getPointAt( progress ) );
+				position.y += 0.3;
+
+				train.position.copy( position );
+
+				tangent.copy( curve.getTangentAt( progress ) );
+
+				velocity -= tangent.y * 0.0000001 * delta;
+				velocity = Math.max( 0.00004, Math.min( 0.0002, velocity ) );
+
+				train.lookAt( lookAt.copy( position ).sub( tangent ) );
+
+				//
+
+				renderer.render( scene, camera );
+
+				prevTime = time;
+
+			}
+
+		</script>
+
+	</body>
+</html>
