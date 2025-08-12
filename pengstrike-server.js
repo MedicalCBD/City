@@ -3,7 +3,10 @@ const http = require('http');
 const path = require('path');
 const fs = require('fs');
 const server = http.createServer();
-const wss = new WebSocket.Server({ server });
+const wss = new WebSocket.Server({ 
+    server,
+    path: '/ws' // optional: specify WebSocket path
+});
 
 // pengstrike game state
 const pengstrikePlayers = new Map();
