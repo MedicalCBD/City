@@ -112,7 +112,7 @@
 		
 		<!-- Arcade button sound -->
 		<audio id="arcadeSound" preload="auto">
-			<source src="button.mp3" type="audio/mpeg">
+			<source src="../../button.mp3" type="audio/mpeg">
 		</audio>
 		
 		<script>
@@ -159,7 +159,7 @@
 			<div class="loading-spinner"></div>
 		</div>
 		
-					<button class="nav-button" onclick="window.location.href='party/abstract/city.html'">return to the city</button>
+		<button class="nav-button" onclick="window.location.href='city.html'">return to the city</button>
 		<div class="player-info" id="playerInfo">players: 0</div>
 		<div class="connection-status" id="connectionStatus">connecting...</div>
 		<div id="blocker">
@@ -186,8 +186,8 @@
 
 		<script type="module">
 
-					import * as THREE from 'party/build/three.module.js';
-		import { PointerLockControls } from 'party/abstract/jsm/controls/PointerLockControls.js';
+			import * as THREE from 'three';
+			import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
 
 			let camera, scene, renderer, controls;
 
