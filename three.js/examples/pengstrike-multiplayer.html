@@ -121,6 +121,9 @@
 			const MAX_HEALTH = 7; // increased from 3 to 7 hearts
 			const playerHealth = new Map(); // track health for all players
 			
+			// spawn point coordinates (center of the battlefield)
+			const SPAWN_POINT = new THREE.Vector3(0, 1, 0);
+			
 			// player meshes for other players - penguin model
 			function createPenguin() {
 				const penguinGroup = new THREE.Group();
@@ -366,7 +369,12 @@
 							if (data.playerId && data.playerId !== playerId) {
 								const player = otherPlayers.get(data.playerId);
 								if (player) {
-									player.position.set(data.position.x, data.position.y, data.position.z);
+									// use spawn point position if provided, otherwise use default spawn
+									if (data.position) {
+										player.position.set(data.position.x, data.position.y, data.position.z);
+									} else {
+										player.position.copy(SPAWN_POINT);
+									}
 									player.health = MAX_HEALTH;
 									playerHealth.set(data.playerId, MAX_HEALTH);
 									
@@ -376,6 +384,8 @@
 											heart.visible = true;
 										});
 									}
+									
+									console.log(`player ${data.playerId} respawned at spawn point!`);
 								}
 							}
 							break;
@@ -469,8 +479,8 @@
 			function respawnPlayer(playerId) {
 				const player = otherPlayers.get(playerId);
 				if (player) {
-					// reset position to spawn point
-					player.position.set(0, 1, 0);
+					// reset position to spawn point (center of battlefield)
+					player.position.copy(SPAWN_POINT);
 					player.velocity.set(0, 0, 0);
 					player.onFloor = false;
 					
@@ -485,13 +495,18 @@
 						});
 					}
 					
-					console.log(`player ${playerId} respawned!`);
+					console.log(`player ${playerId} respawned at spawn point!`);
 					
-					// send respawn message to server
+					// send respawn message to server with spawn position
 					if (ws && ws.readyState === WebSocket.OPEN) {
 						ws.send(JSON.stringify({
 							type: 'respawn',
-							playerId: playerId
+							playerId: playerId,
+							position: {
+								x: SPAWN_POINT.x,
+								y: SPAWN_POINT.y,
+								z: SPAWN_POINT.z
+							}
 						}));
 					}
 				}
@@ -569,33 +584,14 @@
 				document.getElementById('playerInfo').textContent = `players: ${count}`;
 			}
 			
-			// create UI for local player health
+			// create UI for local player health - REMOVED
 			function createLocalPlayerHealthUI() {
-				const healthContainer = document.createElement('div');
-				healthContainer.id = 'localPlayerHealth';
-				healthContainer.style.cssText = `
-					position: fixed;
-					top: 60px;
-					left: 20px;
-					background: rgba(0, 0, 0, 0.7);
-					color: white;
-					padding: 10px 15px;
-					border-radius: 5px;
-					font-family: Arial, sans-serif;
-					font-size: 14px;
-					z-index: 1000;
-				`;
-				healthContainer.innerHTML = `health: ❤️❤️❤️`;
-				document.body.appendChild(healthContainer);
+				// removed health UI - hearts are only shown above penguins
 			}
 			
-			// update local player health display
+			// update local player health display - REMOVED
 			function updateLocalPlayerHealth(health) {
-				const healthElement = document.getElementById('localPlayerHealth');
-				if (healthElement) {
-					const hearts = '❤️'.repeat(health) + '🖤'.repeat(MAX_HEALTH - health);
-					healthElement.innerHTML = `health: ${hearts}`;
-				}
+				// removed health UI - hearts are only shown above penguins
 			}
 
 			// input handling
