@@ -168,7 +168,7 @@
 		
 		<!-- Arcade button sound -->
 		<audio id="arcadeSound" preload="auto">
-			<source src="../../button.mp3" type="audio/mpeg">
+			<source src="button.mp3" type="audio/mpeg">
 		</audio>
 		
 		<script>
@@ -226,9 +226,9 @@
 		</div>
 
 		<div class="button-container">
-			<button class="nav-button rollercoaster" data-url="rollercoaster.html">roadmap</button>
-			<button class="nav-button pengstrike" data-url="pengstrike-multiplayer.html">go to pengstrike</button>
-			<button class="nav-button climbandwin" data-url="climbandwin-multiplayer.html">climb and win</button>
+			<button class="nav-button rollercoaster" data-url="party/abstract/rollercoaster.html">roadmap</button>
+			<button class="nav-button pengstrike" data-url="party/abstract/pengstrike-multiplayer.html">go to pengstrike</button>
+			<button class="nav-button climbandwin" data-url="party/abstract/climbandwin-multiplayer.html">climb and win</button>
 			<button class="nav-button twitter" data-url="https://x.com/PartyOnAbs" data-external="true">twitter</button>
 			<button class="nav-button telegram" data-url="https://t.me/PartyOnAbs" data-external="true">telegram</button>
 		</div>
@@ -246,10 +246,10 @@
 
 		<script type="module">
 
-			import * as THREE from 'three/webgpu';
-			import { color, fog, float, positionWorld, triNoise3D, positionView, normalWorld, uniform } from 'three/tsl';
+					import * as THREE from 'party/webgpu';
+		import { color, fog, float, positionWorld, triNoise3D, positionView, normalWorld, uniform } from 'party/tsl';
 
-			import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+		import { OrbitControls } from 'party/addons/controls/OrbitControls.js';
 
 			let camera, scene, renderer;
 			let controls;

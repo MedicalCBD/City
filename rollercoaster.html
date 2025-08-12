@@ -157,7 +157,7 @@
 		
 		<!-- Arcade button sound -->
 		<audio id="arcadeSound" preload="auto">
-			<source src="../../button.mp3" type="audio/mpeg">
+			<source src="button.mp3" type="audio/mpeg">
 		</audio>
 		
 		<script>
@@ -289,7 +289,7 @@
 			</div>
 		</div>
 		
-		<button class="nav-button" onclick="window.location.href='city.html'">return to the city</button>
+					<button class="nav-button" onclick="window.location.href='party/abstract/city.html'">return to the city</button>
 
 		<script type="importmap">
 			{
@@ -303,7 +303,7 @@
 
 		<script type="module">
 
-			import * as THREE from 'three/webgpu';
+			import * as THREE from 'party/webgpu';
 
 			import {
 				RollerCoasterGeometry,
@@ -311,11 +311,11 @@
 				RollerCoasterLiftersGeometry,
 				TreesGeometry,
 				SkyGeometry
-			} from 'three/addons/misc/RollerCoaster.js';
+			} from 'party/addons/misc/RollerCoaster.js';
 
-			// import { VRButton } from 'three/addons/webxr/VRButton.js';
-			import { FontLoader } from 'three/addons/loaders/FontLoader.js';
-			import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
+			// import { VRButton } from 'party/addons/webxr/VRButton.js';
+			import { FontLoader } from 'party/addons/loaders/FontLoader.js';
+			import { TextGeometry } from 'party/addons/geometries/TextGeometry.js';
 
 			let mesh, material, geometry;
 
