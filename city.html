@@ -246,10 +246,10 @@
 
 		<script type="module">
 
-					import * as THREE from 'party/webgpu';
-		import { color, fog, float, positionWorld, triNoise3D, positionView, normalWorld, uniform } from 'party/tsl';
+					import * as THREE from 'party/build/three.module.js';
+		import { color, fog, float, positionWorld, triNoise3D, positionView, normalWorld, uniform } from 'party/abstract/jsm/nodes/tsl/TSL.js';
 
-		import { OrbitControls } from 'party/addons/controls/OrbitControls.js';
+		import { OrbitControls } from 'party/abstract/jsm/controls/OrbitControls.js';
 
 			let camera, scene, renderer;
 			let controls;

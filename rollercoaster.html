@@ -303,7 +303,7 @@
 
 		<script type="module">
 
-			import * as THREE from 'party/webgpu';
+			import * as THREE from 'party/build/three.module.js';
 
 			import {
 				RollerCoasterGeometry,
@@ -311,11 +311,11 @@
 				RollerCoasterLiftersGeometry,
 				TreesGeometry,
 				SkyGeometry
-			} from 'party/addons/misc/RollerCoaster.js';
+			} from 'party/abstract/jsm/misc/RollerCoaster.js';
 
-			// import { VRButton } from 'party/addons/webxr/VRButton.js';
-			import { FontLoader } from 'party/addons/loaders/FontLoader.js';
-			import { TextGeometry } from 'party/addons/geometries/TextGeometry.js';
+			// import { VRButton } from 'party/abstract/jsm/webxr/VRButton.js';
+			import { FontLoader } from 'party/abstract/jsm/loaders/FontLoader.js';
+			import { TextGeometry } from 'party/abstract/jsm/geometries/TextGeometry.js';
 
 			let mesh, material, geometry;
 
