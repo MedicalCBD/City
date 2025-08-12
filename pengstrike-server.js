@@ -235,9 +235,9 @@ function updateClimbandwinPlayerPosition(playerId, position, rotation, velocity,
 server.on('request', (req, res) => {
     let filePath = req.url;
     
-    // default to city.html
+    // default to index.html
     if (filePath === '/') {
-        filePath = '/city.html';
+        filePath = '/index.html';
     }
     
     // remove query parameters

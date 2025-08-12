@@ -1,195 +1,385 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="utf-8">
-    <title>$PARTY</title>
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            font-family: 'Courier New', monospace;
-            overflow: hidden;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-        }
+	<head>
+		<title>$PARTY</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<link type="text/css" rel="stylesheet" href="main.css">
+		<style>
+			.logo-container {
+				position: fixed;
+				top: 50%;
+				left: 50%;
+				transform: translate(-50%, -50%);
+				z-index: 1000;
+			}
 
-        .logo-container {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 1000;
-        }
+			.logo {
+				max-width: 300px;
+				height: auto;
+				display: block;
+			}
 
-        .logo {
-            max-width: 300px;
-            height: auto;
-            display: block;
-        }
+			.button-container {
+				position: fixed;
+				top: 75%;
+				left: 50%;
+				transform: translateX(-50%);
+				display: flex;
+				gap: 15px;
+				z-index: 1000;
+				padding: 25px;
+				background: linear-gradient(to bottom, rgba(255, 255, 255, 0.95) 0%, rgba(220, 220, 220, 0.95) 100%);
+				border: 4px solid #000;
+				border-radius: 15px;
+				box-shadow: 0 8px 0 #000, inset 0 3px 0 rgba(255, 255, 255, 0.7);
+				image-rendering: pixelated;
+				flex-wrap: wrap;
+				justify-content: center;
+				max-width: 90vw;
+			}
+			
+			.loading-overlay {
+				position: fixed;
+				top: 0;
+				left: 0;
+				width: 100%;
+				height: 100%;
+				background: rgba(0, 0, 0, 0.8);
+				display: none;
+				justify-content: center;
+				align-items: center;
+				z-index: 9999;
+			}
+			
+			.loading-spinner {
+				width: 60px;
+				height: 60px;
+				border: 6px solid #f3f3f3;
+				border-top: 6px solid #3498db;
+				border-radius: 50%;
+				animation: spin 1s linear infinite;
+			}
+			
+			@keyframes spin {
+				0% { transform: rotate(0deg); }
+				100% { transform: rotate(360deg); }
+			}
+			
+			.nav-button {
+				width: 160px;
+				height: 50px;
+				border: 3px solid #000;
+				border-radius: 12px;
+				cursor: pointer;
+				font-family: 'Courier New', monospace;
+				font-size: 14px;
+				font-weight: bold;
+				text-transform: uppercase;
+				transition: all 0.1s ease;
+				image-rendering: pixelated;
+				text-shadow: 1px 1px 0 #000;
+				position: relative;
+			}
+			
+			.nav-button:hover {
+				transform: translateY(2px);
+			}
+			
+			.nav-button:active {
+				transform: translateY(6px);
+			}
+			
+			/* Rollercoaster button - Orange */
+			.nav-button.rollercoaster {
+				background: linear-gradient(to bottom, #FFB347 0%, #FF8C00 50%, #FF4500 100%);
+				color: #000;
+			}
+			
+			.nav-button.rollercoaster:hover {
+				transform: translateY(2px);
+			}
+			
+			.nav-button.rollercoaster:active {
+				transform: translateY(6px);
+			}
+			
+			/* Pengstrike button - Red */
+			.nav-button.pengstrike {
+				background: linear-gradient(to bottom, #FF6B6B 0%, #DC143C 50%, #8B0000 100%);
+				color: #000;
+			}
+			
+			.nav-button.pengstrike:hover {
+				transform: translateY(2px);
+			}
+			
+			.nav-button.pengstrike:active {
+				transform: translateY(6px);
+			}
+			
+			/* Climb and Win button - Cyan */
+			.nav-button.climbandwin {
+				background: linear-gradient(to bottom, #00CED1 0%, #20B2AA 50%, #008B8B 100%);
+				color: #000;
+			}
+			
+			.nav-button.climbandwin:hover {
+				transform: translateY(2px);
+			}
+			
+			.nav-button.climbandwin:active {
+				transform: translateY(6px);
+			}
+			
+			/* Twitter button - Green */
+			.nav-button.twitter {
+				background: linear-gradient(to bottom, #90EE90 0%, #32CD32 50%, #228B22 100%);
+				color: #000;
+			}
+			
+			.nav-button.twitter:hover {
+				transform: translateY(2px);
+			}
+			
+			.nav-button.twitter:active {
+				transform: translateY(6px);
+			}
+			
+			/* Telegram button - Pink */
+			.nav-button.telegram {
+				background: linear-gradient(to bottom, #FFB6C1 0%, #FF69B4 50%, #C71585 100%);
+				color: #000;
+			}
+			
+			.nav-button.telegram:hover {
+				transform: translateY(2px);
+			}
+			
+			.nav-button.telegram:active {
+				transform: translateY(6px);
+			}
+		</style>
+		
+		<!-- Audio elements for arcade button sounds -->
+		<audio id="buttonSound" preload="auto">
+			<source src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIG2m98OScTgwOUarm7blmGgU7k9n1unEiBC13yO/eizEIHWq+8+OWT" type="audio/wav">
+		</audio>
+		
+		<!-- Arcade button sound -->
+		<audio id="arcadeSound" preload="auto">
+			<source src="../../button.mp3" type="audio/mpeg">
+		</audio>
+		
+		<script>
+			// Arcade button sound function
+			function playButtonSound() {
+				const audio = document.getElementById('arcadeSound');
+				audio.currentTime = 0;
+				audio.volume = 0.5;
+				audio.play().catch(e => console.log('Audio play failed:', e));
+			}
+			
+			// Show loading overlay
+			function showLoading() {
+				document.getElementById('loadingOverlay').style.display = 'flex';
+			}
+			
+			// Add click handlers to all buttons
+			document.addEventListener('DOMContentLoaded', function() {
+				const buttons = document.querySelectorAll('.nav-button');
+				buttons.forEach(button => {
+					button.addEventListener('click', function(e) {
+						e.preventDefault();
+						e.stopPropagation();
+						
+						playButtonSound();
+						
+						const url = button.getAttribute('data-url');
+						const isExternal = button.getAttribute('data-external') === 'true';
+						
+						if (isExternal) {
+							// For external links, open immediately after sound
+							setTimeout(() => {
+								window.open(url, '_blank');
+							}, 500);
+						} else {
+							// For internal links, show loading and delay
+							showLoading();
+							setTimeout(() => {
+								window.location.href = url;
+							}, 2500);
+						}
+					});
+				});
+			});
+		</script>
+	</head>
+	<body>
+		<!-- Loading overlay -->
+		<div class="loading-overlay" id="loadingOverlay">
+			<div class="loading-spinner"></div>
+		</div>
 
-        .button-container {
-            position: fixed;
-            top: 75%;
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            gap: 20px;
-            flex-wrap: wrap;
-            justify-content: center;
-            background: rgba(0, 0, 0, 0.3);
-            padding: 20px;
-            border: 3px solid #000;
-            border-radius: 10px;
-            backdrop-filter: blur(10px);
-        }
+		<div class="logo-container">
+			<img src="../../Logo.png" alt="Party On Abs Logo" class="logo">
+		</div>
 
-        .nav-button {
-            width: 200px;
-            height: 60px;
-            border: 4px solid #000;
-            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
-            color: white;
-            font-family: 'Courier New', monospace;
-            font-size: 16px;
-            font-weight: bold;
-            text-transform: uppercase;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-shadow: 2px 2px 0px #000;
-            image-rendering: pixelated;
-            position: relative;
-            overflow: hidden;
-        }
+		<div class="button-container">
+			<button class="nav-button rollercoaster" data-url="rollercoaster.html">roadmap</button>
+			<button class="nav-button pengstrike" data-url="pengstrike-multiplayer.html">go to pengstrike</button>
+			<button class="nav-button climbandwin" data-url="climbandwin-multiplayer.html">climb and win</button>
+			<button class="nav-button twitter" data-url="https://x.com/PartyOnAbs" data-external="true">twitter</button>
+			<button class="nav-button telegram" data-url="https://t.me/PartyOnAbs" data-external="true">telegram</button>
+		</div>
 
-        .nav-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-        }
+		<script type="importmap">
+			{
+				"imports": {
+					"three": "../build/three.webgpu.js",
+					"three/webgpu": "../build/three.webgpu.js",
+					"three/tsl": "../build/three.tsl.js",
+					"three/addons/": "./jsm/"
+				}
+			}
+		</script>
 
-        .nav-button:active {
-            transform: translateY(0);
-        }
+		<script type="module">
 
-        .rollercoaster {
-            background: linear-gradient(45deg, #ffa726, #ff9800);
-        }
+			import * as THREE from 'three/webgpu';
+			import { color, fog, float, positionWorld, triNoise3D, positionView, normalWorld, uniform } from 'three/tsl';
 
-        .pengstrike {
-            background: linear-gradient(45deg, #ef5350, #e53935);
-        }
+			import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
-        .climbandwin {
-            background: linear-gradient(45deg, #26c6da, #00bcd4);
-        }
+			let camera, scene, renderer;
+			let controls;
 
-        .twitter {
-            background: linear-gradient(45deg, #66bb6a, #4caf50);
-        }
+			init();
 
-        .telegram {
-            background: linear-gradient(45deg, #ec407a, #e91e63);
-        }
+			function init() {
 
-        .loading-spinner {
-            display: none;
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 50px;
-            height: 50px;
-            border: 5px solid #f3f3f3;
-            border-top: 5px solid #3498db;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            z-index: 2000;
-        }
+				camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 600 );
+				camera.position.set( 30, 15, 30 );
 
-        @keyframes spin {
-            0% { transform: translate(-50%, -50%) rotate(0deg); }
-            100% { transform: translate(-50%, -50%) rotate(360deg); }
-        }
+				scene = new THREE.Scene();
 
-        @media (max-width: 768px) {
-            .button-container {
-                flex-direction: column;
-                gap: 10px;
-            }
-            
-            .nav-button {
-                width: 150px;
-                height: 50px;
-                font-size: 14px;
-            }
-        }
-    </style>
-</head>
-<body>
-    <div class="logo-container">
-        <img src="Logo.png" alt="Party On Abs Logo" class="logo">
-    </div>
+				// custom fog
 
-    <div class="button-container">
-        <button class="nav-button roadmap" data-url="rollercoaster.html">roadmap</button>
-        <button class="nav-button pengstrike" data-url="pengstrike-multiplayer.html">go to pengstrike</button>
-        <button class="nav-button climbandwin" data-url="climbandwin-multiplayer.html">climb and win</button>
-        <button class="nav-button twitter" data-url="https://x.com/PartyOnAbs" data-external="true">twitter</button>
-        <button class="nav-button telegram" data-url="https://t.me/PartyOnAbs" data-external="true">telegram</button>
-    </div>
+				const skyColor = color( 0xf0f5f5 );
+				const groundColor = color( 0x90ee90 );
 
-    <div class="loading-spinner" id="loadingSpinner"></div>
+				const fogNoiseDistance = positionView.z.negate().smoothstep( 0, camera.far - 300 );
 
-    <audio id="arcadeSound" preload="auto">
-        <source src="button.mp3" type="audio/mpeg">
-    </audio>
+				const distance = fogNoiseDistance.mul( 20 ).max( 4 );
+				const alpha = .98;
+				const groundFogArea = float( distance ).sub( positionWorld.y ).div( distance ).pow( 3 ).saturate().mul( alpha );
 
-    <script>
-        function playButtonSound() {
-            const audio = document.getElementById('arcadeSound');
-            audio.currentTime = 0;
-            audio.play().catch(e => console.log('audio play failed:', e));
-        }
+				// a alternative way to create a TimerNode
+				const timer = uniform( 0 ).onFrameUpdate( ( frame ) => frame.time );
 
-        function showLoading() {
-            const spinner = document.getElementById('loadingSpinner');
-            spinner.style.display = 'block';
-        }
+				const fogNoiseA = triNoise3D( positionWorld.mul( .005 ), 0.2, timer );
+				const fogNoiseB = triNoise3D( positionWorld.mul( .01 ), 0.2, timer.mul( 1.2 ) );
 
-        function hideLoading() {
-            const spinner = document.getElementById('loadingSpinner');
-            spinner.style.display = 'none';
-        }
+				const fogNoise = fogNoiseA.add( fogNoiseB ).mul( groundColor );
 
-        document.addEventListener('DOMContentLoaded', function() {
-            const buttons = document.querySelectorAll('.nav-button');
-            
-            buttons.forEach(button => {
-                button.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    
-                    const url = this.getAttribute('data-url');
-                    const isExternal = this.getAttribute('data-external') === 'true';
-                    
-                    playButtonSound();
-                    
-                    if (isExternal) {
-                        setTimeout(() => {
-                            window.open(url, '_blank');
-                        }, 500);
-                    } else {
-                        showLoading();
-                        setTimeout(() => {
-                            window.location.href = url;
-                        }, 2500);
-                    }
-                });
-            });
-        });
-    </script>
-</body>
+				// apply custom fog
+
+				scene.fogNode = fog( fogNoiseDistance.oneMinus().mix( groundColor, fogNoise ), groundFogArea );
+				scene.backgroundNode = normalWorld.y.max( 0 ).mix( groundColor, skyColor );
+
+				// builds
+
+				const buildWindows = positionWorld.y.mul( 10 ).floor().mod( 4 ).sign().mix( color( 0x000066 ).add( fogNoiseDistance ), color( 0xffffff ) );
+
+				const buildGeometry = new THREE.BoxGeometry( 1, 1, 1 );
+				const buildMaterial = new THREE.MeshPhongNodeMaterial( {
+					colorNode: buildWindows
+				} );
+
+				const buildMesh = new THREE.InstancedMesh( buildGeometry, buildMaterial, 4000 );
+				scene.add( buildMesh );
+
+				const dummy = new THREE.Object3D();
+				const center = new THREE.Vector3();
+
+				for ( let i = 0; i < buildMesh.count; i ++ ) {
+
+					const scaleY = Math.random() * 7 + .5;
+
+					dummy.position.x = Math.random() * 600 - 300;
+					dummy.position.z = Math.random() * 600 - 300;
+
+					const distance = Math.max( dummy.position.distanceTo( center ) * .012, 1 );
+
+					dummy.position.y = .5 * scaleY * distance;
+
+					dummy.scale.x = dummy.scale.z = Math.random() * 3 + .5;
+					dummy.scale.y = scaleY * distance;
+
+					dummy.updateMatrix();
+
+					buildMesh.setMatrixAt( i, dummy.matrix );
+
+				}
+
+				// lights
+
+				scene.add( new THREE.HemisphereLight( skyColor.value, groundColor.value, 0.5 ) );
+
+				// geometry
+
+				const planeGeometry = new THREE.PlaneGeometry( 200, 200 );
+				const planeMaterial = new THREE.MeshPhongMaterial( {
+					color: 0x999999
+				} );
+
+				const ground = new THREE.Mesh( planeGeometry, planeMaterial );
+				ground.rotation.x = - Math.PI / 2;
+				ground.scale.multiplyScalar( 3 );
+				ground.castShadow = true;
+				ground.receiveShadow = true;
+				scene.add( ground );
+
+				// renderer
+
+				renderer = new THREE.WebGPURenderer( { antialias: true } );
+				renderer.setPixelRatio( window.devicePixelRatio );
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				renderer.setAnimationLoop( animate );
+				document.body.appendChild( renderer.domElement );
+
+				// controls
+
+				controls = new OrbitControls( camera, renderer.domElement );
+				controls.target.set( 0, 2, 0 );
+				controls.minDistance = 7;
+				controls.maxDistance = 100;
+				controls.maxPolarAngle = Math.PI / 2;
+				controls.autoRotate = true;
+				controls.autoRotateSpeed = .1;
+				controls.update();
+
+				window.addEventListener( 'resize', resize );
+
+			}
+
+			function resize() {
+
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+
+				renderer.setSize( window.innerWidth, window.innerHeight );
+
+			}
+
+			function animate() {
+
+				controls.update();
+
+				renderer.render( scene, camera );
+
+			}
+
+		</script>
+	</body>
 </html>
