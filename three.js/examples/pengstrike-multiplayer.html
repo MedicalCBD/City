@@ -87,6 +87,16 @@
 			}
 			.connected { color: #4CAF50; }
 			.disconnected { color: #f44336; }
+			
+			.logo {
+				position: fixed;
+				bottom: 20px;
+				right: 20px;
+				max-width: 150px;
+				height: auto;
+				image-rendering: pixelated;
+				z-index: 1000;
+			}
 		</style>
 		
 		<!-- Arcade button sound -->
@@ -985,5 +995,6 @@
 			connectWebSocket();
 
 		</script>
+		<img src="../../Logo.png" alt="PartyOnAbs Logo" class="logo">
 	</body>
 </html>
