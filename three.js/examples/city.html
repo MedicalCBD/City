@@ -6,7 +6,19 @@
 		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
 		<link type="text/css" rel="stylesheet" href="main.css">
 		<style>
-			
+			.logo {
+				position: fixed;
+				top: 10%;
+				left: 50%;
+				transform: translateX(-50%);
+				max-width: 300px;
+				height: auto;
+				border: 4px solid #000;
+				border-radius: 15px;
+				box-shadow: 0 8px 0 #000, inset 0 3px 0 rgba(255, 255, 255, 0.7);
+				image-rendering: pixelated;
+				z-index: 1000;
+			}
 			
 			.button-container {
 				position: fixed;
@@ -210,7 +222,8 @@
 		</div>
 
 
-
+		<img src="../../Logo.png" alt="PartyOnAbs Logo" class="logo">
+		
 		<div class="button-container">
 			<button class="nav-button rollercoaster" data-url="rollercoaster.html">roadmap</button>
 			<button class="nav-button pengstrike" data-url="pengstrike-multiplayer.html">go to pengstrike</button>
